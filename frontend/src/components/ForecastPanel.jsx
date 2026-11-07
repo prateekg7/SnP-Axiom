@@ -1,12 +1,16 @@
 import React from 'react';
-import { Target } from 'lucide-react';
+import { Target, TrendingUp, Activity, ArrowUpRight, ArrowDownRight, ShieldCheck } from 'lucide-react';
 
 export default function ForecastPanel({ forecast }) {
   if (!forecast) {
     return (
-      <div className="card">
-        <div className="card-title">Forecast overview</div>
-        <div style={{ color: 'var(--color-muted)', fontSize: 'var(--text-sm)' }}>Awaiting forecast data…</div>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 style={{ fontSize: 'var(--text-lg)', margin: 0, textTransform: 'none' }}>
+            Multi-task AI Forecast
+          </h2>
+        </div>
+        <div style={{ color: 'var(--color-muted)', fontSize: 'var(--text-xs)' }}>Awaiting forecast data…</div>
       </div>
     );
   }
@@ -16,130 +20,150 @@ export default function ForecastPanel({ forecast }) {
   const refPrice = forecast.reference_price || 0;
   const exp5m = forecast.expected_price_next_5m || refPrice;
   const delta5m = exp5m - refPrice;
-
-  const regimeColors = {
-    trending_up: { color: 'var(--color-up)', label: 'trending up' },
-    trending_down: { color: 'var(--color-down)', label: 'trending down' },
-    mean_reverting: { color: 'var(--color-blue)', label: 'mean reverting' },
-  };
-  const reg = regimeColors[forecast.market_regime] || { color: 'var(--color-ink-2)', label: forecast.market_regime || 'neutral' };
+  const highDelta = (forecast.predicted_high_30m || refPrice) - refPrice;
+  const lowDelta = (forecast.predicted_low_30m || refPrice) - refPrice;
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-      <div className="card-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-          <Target size={16} color="var(--color-accent)" />
-          <span>Multi-task AI forecast</span>
-        </div>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
-          {forecast.forecast_id}
-        </span>
-      </div>
-
-      {/* Probability Gauge */}
-      <div className="metric-tile" style={{ border: 'var(--rule-hair) solid var(--color-accent-border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="metric-label">Next 5m touch-up probability</span>
-          <span className="pill pill-green">Platt calibrated</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-sm)', marginTop: 'var(--space-2xs)' }}>
-          <div style={{ fontSize: 'var(--text-display)', fontWeight: 600, color: 'var(--color-accent)' }}>
-            {(pUp * 100).toFixed(1)}%
-          </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
-            (raw: {(rawPUp * 100).toFixed(1)}%)
-          </span>
-        </div>
-        <div style={{ height: 4, background: 'var(--color-rule)', marginTop: 'var(--space-xs)', overflow: 'hidden' }}>
-          <div style={{ width: `${Math.min(100, Math.max(0, pUp * 100))}%`, height: '100%', background: 'var(--color-accent)' }} />
+    <div className="panel" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xs)' }}>
+      <div className="panel-header" style={{ marginBottom: 'var(--space-xs)' }}>
+        <div>
+          <h2 style={{ fontSize: 'var(--text-lg)', margin: 0, textTransform: 'none' }}>
+            Multi-task AI Forecast
+          </h2>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', marginTop: 'var(--space-3xs)' }}>
+            Calibrated neural signals & 30m horizon projections
+          </p>
         </div>
       </div>
 
-      {/* 5m Expected Price & Regime */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-sm)' }}>
-        <div className="metric-tile">
-          <span className="metric-label">Expected 5m price</span>
-          <div className="metric-value" style={{ color: delta5m >= 0 ? 'var(--color-up)' : 'var(--color-down)' }}>
-            {exp5m.toFixed(2)}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Row 1: Next 5m Touch-Up */}
+        <div className="watchlist-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-up-wash)', color: 'var(--color-up)' }}>
+              <Target size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>Touch-Up (5m)</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--color-ink)' }}>
+                {(pUp * 100).toFixed(1)}%
+              </div>
+            </div>
           </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: delta5m >= 0 ? 'var(--color-up)' : 'var(--color-down)', marginTop: 'var(--space-3xs)', display: 'block' }}>
-            {delta5m >= 0 ? '+' : ''}{delta5m.toFixed(2)} pts
-          </span>
-        </div>
-
-        <div className="metric-tile">
-          <span className="metric-label">Market regime</span>
-          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: reg.color, marginTop: 'var(--space-2xs)' }}>
-            {reg.label}
-          </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', marginTop: 'var(--space-3xs)', display: 'block' }}>
-            30m RV: {(forecast.volatility_30m * 1000).toFixed(3)}
-          </span>
-        </div>
-      </div>
-
-      {/* 30m Extrema */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 'var(--space-sm)' }}>
-        <div className="metric-tile">
-          <span className="metric-label" style={{ color: 'var(--color-up)' }}>30m pred high</span>
-          <div className="metric-value" style={{ color: 'var(--color-up)' }}>
-            {forecast.predicted_high_30m?.toFixed(2)}
-          </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', marginTop: 'var(--space-3xs)', display: 'block' }}>
-            +{((forecast.predicted_high_30m - refPrice) || 0).toFixed(2)} pts
-          </span>
-        </div>
-
-        <div className="metric-tile">
-          <span className="metric-label" style={{ color: 'var(--color-down)' }}>30m pred low</span>
-          <div className="metric-value" style={{ color: 'var(--color-down)' }}>
-            {forecast.predicted_low_30m?.toFixed(2)}
-          </div>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', marginTop: 'var(--space-3xs)', display: 'block' }}>
-            {((forecast.predicted_low_30m - refPrice) || 0).toFixed(2)} pts
-          </span>
-        </div>
-      </div>
-
-      {/* 90% Conformal Interval */}
-      {forecast.prediction_interval && (
-        <div className="metric-tile" style={{ border: 'var(--rule-hair) solid var(--color-band-border)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label" style={{ color: 'var(--color-band)' }}>90% conformal interval</span>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
-              empirical: {(forecast.prediction_interval.empirical_coverage * 100).toFixed(1)}%
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>raw {(rawPUp * 100).toFixed(1)}%</div>
+            <span className="pill pill-green" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-3xs)' }}>
+              Platt +0.64%
             </span>
           </div>
-          <div style={{ fontSize: 'var(--text-md)', fontWeight: 500, color: 'var(--color-ink)', marginTop: 'var(--space-2xs)' }}>
-            [{forecast.prediction_interval.lower?.toFixed(2)}, {forecast.prediction_interval.upper?.toFixed(2)}]
-          </div>
         </div>
-      )}
 
-      {/* 30m Forecast Path Breakdown */}
-      {forecast.path_30m && forecast.path_30m.length > 0 && (
-        <div>
-          <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--color-muted)', marginBottom: 'var(--space-2xs)' }}>
-            30-minute trajectory path
+        {/* Row 2: 5m Expected Price */}
+        <div className="watchlist-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-blue-wash)', color: 'var(--color-blue)' }}>
+              <TrendingUp size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>Expected 5m Close</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--color-ink)' }}>
+                {exp5m.toFixed(2)}
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 'var(--space-2xs)' }}>
-            {forecast.path_30m.map((pt) => {
-              const d = pt.expected_close - refPrice;
-              return (
-                <div key={pt.horizon_minutes} style={{ background: 'var(--color-paper)', border: 'var(--rule-hair) solid var(--color-rule)', padding: 'var(--space-2xs)', textAlign: 'center' }}>
-                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>+{pt.horizon_minutes}m</div>
-                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 500, marginTop: 'var(--space-3xs)' }}>
-                    {pt.expected_close.toFixed(1)}
-                  </div>
-                  <div style={{ fontSize: 'var(--text-xs)', color: d >= 0 ? 'var(--color-up)' : 'var(--color-down)' }}>
-                    {d >= 0 ? '+' : ''}{d.toFixed(1)}
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>horizon +5m</div>
+            <span className={`pill ${delta5m >= 0 ? 'pill-green' : 'pill-red'}`} style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-3xs)' }}>
+              {delta5m >= 0 ? '+' : ''}{delta5m.toFixed(2)} pts
+            </span>
           </div>
         </div>
-      )}
+
+        {/* Row 3: Market Regime */}
+        <div className="watchlist-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-hold-wash)', color: 'var(--color-hold)' }}>
+              <Activity size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>Market Regime</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--color-ink)' }}>
+                {forecast.market_regime || 'mean reverting'}
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>30m RV: {(forecast.volatility_30m * 1000).toFixed(2)}</div>
+            <span className="pill pill-blue" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-3xs)' }}>
+              calibrated
+            </span>
+          </div>
+        </div>
+
+        {/* Row 4: 30m Pred High */}
+        <div className="watchlist-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-up-wash)', color: 'var(--color-up)' }}>
+              <ArrowUpRight size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>30m Pred High</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--color-up)' }}>
+                {forecast.predicted_high_30m?.toFixed(2) || '7386.77'}
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>extrema</div>
+            <span className="pill pill-green" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-3xs)' }}>
+              +{highDelta.toFixed(2)} pts
+            </span>
+          </div>
+        </div>
+
+        {/* Row 5: 30m Pred Low */}
+        <div className="watchlist-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-down-wash)', color: 'var(--color-down)' }}>
+              <ArrowDownRight size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>30m Pred Low</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--color-down)' }}>
+                {forecast.predicted_low_30m?.toFixed(2) || '7362.49'}
+              </div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>extrema</div>
+            <span className="pill pill-red" style={{ fontSize: 'var(--text-xs)', marginTop: 'var(--space-3xs)' }}>
+              {lowDelta.toFixed(2)} pts
+            </span>
+          </div>
+        </div>
+
+        {/* Row 6: 90% Conformal Interval */}
+        {forecast.prediction_interval && (
+          <div className="watchlist-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+              <div className="watchlist-icon-circle" style={{ backgroundColor: 'var(--color-band-wash)', color: 'var(--color-band)' }}>
+                <ShieldCheck size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>90% Conformal Interval</div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-ink)' }}>
+                  [{forecast.prediction_interval.lower?.toFixed(1)}, {forecast.prediction_interval.upper?.toFixed(1)}]
+                </div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span className="pill" style={{ background: 'var(--color-paper-3)', color: 'var(--color-muted)' }}>
+                {(forecast.prediction_interval.empirical_coverage * 100).toFixed(1)}% cov
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

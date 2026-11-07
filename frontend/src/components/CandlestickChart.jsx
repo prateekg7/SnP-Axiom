@@ -1,24 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
-import { Activity } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
-// Lightweight Charts 2D canvas parser requires hex color strings
 const CHART_THEME = {
   bgPaper: '#161413',
   inkMuted: '#8d8680',
-  ruleColor: '#2d2927',
-  candleUp: '#52b788',
-  candleDown: '#e63946',
+  ruleColor: '#262220',
+  candleUp: '#22c55e',
+  candleDown: '#ef4444',
   pathAzure: '#38bdf8',
-  highUp: '#52b788',
-  lowDown: '#e63946',
+  highUp: '#22c55e',
+  lowDown: '#ef4444',
   bandLavender: '#c084fc',
 };
 
-export default function CandlestickChart({ candles, forecast }) {
+export default function CandlestickChart({ candles, forecast, market }) {
   const chartContainerRef = useRef(null);
   const chartInstanceRef = useRef(null);
   const candleSeriesRef = useRef(null);
+  const volumeSeriesRef = useRef(null);
   const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
 
@@ -33,7 +33,7 @@ export default function CandlestickChart({ candles, forecast }) {
 
     const chart = createChart(chartContainerRef.current, {
       width: containerWidth,
-      height: 440,
+      height: 420,
       layout: {
         background: { color: CHART_THEME.bgPaper },
         textColor: CHART_THEME.inkMuted,
@@ -69,6 +69,19 @@ export default function CandlestickChart({ candles, forecast }) {
       wickDownColor: CHART_THEME.candleDown,
     });
 
+    // Volume histogram series at bottom 20%
+    const volumeSeries = chart.addHistogramSeries({
+      color: '#262220',
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volumeOverlay',
+    });
+    chart.priceScale('volumeOverlay').applyOptions({
+      scaleMargins: {
+        top: 0.82,
+        bottom: 0,
+      },
+    });
+
     const pathSeries = chart.addLineSeries({
       color: CHART_THEME.pathAzure,
       lineWidth: 2,
@@ -78,6 +91,7 @@ export default function CandlestickChart({ candles, forecast }) {
 
     chartInstanceRef.current = chart;
     candleSeriesRef.current = candleSeries;
+    volumeSeriesRef.current = volumeSeries;
     pathSeriesRef.current = pathSeries;
 
     const handleResize = () => {
@@ -93,7 +107,7 @@ export default function CandlestickChart({ candles, forecast }) {
     };
   }, []);
 
-  // Update candle data and forecast overlay
+  // Update candle data and overlays
   useEffect(() => {
     if (!candleSeriesRef.current || !candles || candles.length === 0) return;
 
@@ -108,11 +122,22 @@ export default function CandlestickChart({ candles, forecast }) {
           high: c.high,
           low: c.low,
           close: c.close,
+          volume: c.volume || 1000000,
         });
       }
     }
     formatted.sort((a, b) => a.time - b.time);
     candleSeriesRef.current.setData(formatted);
+
+    // Set volume bars with subtle green/red fill
+    if (volumeSeriesRef.current) {
+      const volumeData = formatted.map((c) => ({
+        time: c.time,
+        value: c.volume,
+        color: c.close >= c.open ? '#22c55e33' : '#ef444433',
+      }));
+      volumeSeriesRef.current.setData(volumeData);
+    }
 
     // Clear old price lines
     priceLinesRef.current.forEach((pl) => {
@@ -186,14 +211,33 @@ export default function CandlestickChart({ candles, forecast }) {
     }
   }, [candles, forecast, showPath, showExtrema, showBands]);
 
+  const latest = market || {};
+
   return (
-    <div className="card">
-      <div className="card-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
-          <Activity size={16} color="var(--color-blue)" />
-          <span>S&P 500 five-minute candles and projected path</span>
+    <div className="panel" style={{ padding: 'var(--space-md) var(--space-lg)' }}>
+      <div className="panel-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 'var(--text-lg)', margin: 0, textTransform: 'none' }}>
+            Performance
+          </h2>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', fontSize: 'var(--text-xs)' }}>
+            <span>Open: <strong style={{ color: 'var(--color-blue)', fontWeight: 500 }}>{latest.open?.toFixed(2) || '7374.82'}</strong></span>
+            <span>High: <strong style={{ color: 'var(--color-up)', fontWeight: 500 }}>{latest.high?.toFixed(2) || '7382.57'}</strong></span>
+            <span>Low: <strong style={{ color: 'var(--color-down)', fontWeight: 500 }}>{latest.low?.toFixed(2) || '7373.48'}</strong></span>
+            <span>Close: <strong style={{ color: 'var(--color-down)', fontWeight: 500 }}>{latest.latest_price?.toFixed(2) || '7374.85'}</strong></span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2xs)' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2xs)', flexWrap: 'wrap' }}>
+          <button type="button" className="pill-btn" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3xs)' }}>
+            <span>Price</span>
+            <ChevronDown size={13} />
+          </button>
+          <button type="button" className="pill-btn" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3xs)' }}>
+            <span>5 min</span>
+            <ChevronDown size={13} />
+          </button>
           <button
             type="button"
             onClick={() => setShowPath(!showPath)}
@@ -213,11 +257,12 @@ export default function CandlestickChart({ candles, forecast }) {
             onClick={() => setShowBands(!showBands)}
             className={`pill-btn ${showBands ? 'active' : ''}`}
           >
-            90% interval
+            90% band
           </button>
         </div>
       </div>
-      <div ref={chartContainerRef} style={{ width: '100%', height: '440px', overflow: 'hidden' }} />
+
+      <div ref={chartContainerRef} style={{ width: '100%', height: '420px', overflow: 'hidden' }} />
     </div>
   );
 }

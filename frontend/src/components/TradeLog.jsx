@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { History } from 'lucide-react';
+import { History, X } from 'lucide-react';
 
-export default function TradeLog({ forecastHistory, trades }) {
+export default function TradeLog({ forecastHistory, trades, onClose }) {
   const [activeTab, setActiveTab] = useState('predictions');
 
   const formatNYTime = (isoString) => {
@@ -20,8 +20,8 @@ export default function TradeLog({ forecastHistory, trades }) {
   };
 
   return (
-    <div className="card">
-      <div className="card-title">
+    <div className="panel">
+      <div className="panel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
           <History size={16} color="var(--color-blue)" />
           <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
@@ -42,12 +42,19 @@ export default function TradeLog({ forecastHistory, trades }) {
           </div>
         </div>
 
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
-          {activeTab === 'predictions' ? 'immutable records' : 'simulated fills'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
+            {activeTab === 'predictions' ? 'immutable records' : 'simulated fills'}
+          </span>
+          {onClose && (
+            <button type="button" onClick={onClose} className="header-icon-btn" title="Back to dashboard">
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div style={{ maxHeight: '380px', overflowY: 'auto', border: 'var(--rule-hair) solid var(--color-rule)' }}>
+      <div style={{ maxHeight: '420px', overflowY: 'auto', border: 'var(--rule-hair) solid var(--color-rule)', borderRadius: 'var(--radius-tile)' }}>
         {activeTab === 'predictions' ? (
           <table className="custom-table">
             <thead>
@@ -74,7 +81,7 @@ export default function TradeLog({ forecastHistory, trades }) {
                   <tr key={fc.forecast_id || i}>
                     <td>{formatNYTime(fc.as_of)}</td>
                     <td>{fc.reference_price?.toFixed(2)}</td>
-                    <td style={{ color: 'var(--color-accent)', fontWeight: 500 }}>
+                    <td style={{ color: 'var(--color-accent-text)', fontWeight: 500 }}>
                       {((fc.p_touch_up_next_5m || 0) * 100).toFixed(1)}%
                     </td>
                     <td>{fc.expected_price_next_5m?.toFixed(2)}</td>
