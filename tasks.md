@@ -44,19 +44,19 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 1 — Targets and feature pipeline
 
-- [ ] Implement next-five-minute touch-up target: `next_high > current_close`.
-- [ ] Implement next-five-minute close-up diagnostic.
-- [ ] Implement next-five-minute close return.
-- [ ] Implement six-horizon future close/return targets.
-- [ ] Implement next-30-minute maximum high and minimum low.
-- [ ] Implement same-session end-of-day close target.
-- [ ] Implement next-30-minute realized-volatility target.
-- [ ] Ensure all labels are forward-looking only and are not used before maturity.
-- [ ] Implement price/return/candle features.
-- [ ] Add technical-strategy features (EMA, RSI, MACD, ATR, Bollinger, breakout).
-- [ ] Add session/time-of-day features.
-- [ ] Keep external proxy features out until separately validated.
-- [ ] Save feature schema/version.
+- [x] Implement next-five-minute touch-up target: `next_high > current_close`.
+- [x] Implement next-five-minute close-up diagnostic.
+- [x] Implement next-five-minute close return.
+- [x] Implement six-horizon future close/return targets.
+- [x] Implement next-30-minute maximum high and minimum low.
+- [x] Implement same-session end-of-day close target.
+- [x] Implement next-30-minute realized-volatility target.
+- [x] Ensure all labels are forward-looking only and are not used before maturity.
+- [x] Implement price/return/candle features.
+- [x] Add technical-strategy features (EMA, RSI, MACD, ATR, Bollinger, breakout).
+- [x] Add session/time-of-day features.
+- [x] Keep external proxy features out until separately validated.
+- [x] Save feature schema/version.
 
 **Deliverable:** Reproducible feature and label dataset.
 
