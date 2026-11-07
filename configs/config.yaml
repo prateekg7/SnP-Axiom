@@ -1,0 +1,64 @@
+project:
+  name: spx-ai-indicator
+  instrument: SPX
+  display_name: S&P 500
+  timezone: America/New_York
+  storage_timezone: UTC
+
+market_data:
+  interval: 5m
+  regular_session:
+    open: "09:30"
+    close: "16:00"
+  provider: lse
+  provider_symbol: SPX.IDX  # Candidate only; verify exact instrument identity before use.
+  live_mode: websocket       # Fall back to polling only if supported and documented.
+  stale_after_seconds: 600
+  allow_proxy_as_target: false
+
+forecast:
+  decision_interval_minutes: 5
+  horizon_minutes: 30
+  horizon_bars: 6
+  primary_up_event: next_bar_high_gt_current_close
+  secondary_up_event: next_bar_close_gt_current_close
+  sequence_length: 60        # Initial experiment; tune with chronological validation.
+  prediction_interval_coverage: 0.90
+
+model:
+  primary: lstm_multitask
+  benchmark: lightgbm
+  random_seed: 42
+  lstm:
+    layers: 1
+    hidden_size: 64
+    dropout: 0.20
+    learning_rate: 0.001
+    batch_size: 128
+    epochs: 50
+    early_stopping_patience: 8
+
+decision:
+  provider: jev
+  fallback_action: HOLD
+  allowed_actions: [LONG, SHORT, HOLD]
+  reject_stale_data: true
+  reject_invalid_forecast: true
+
+paper_trading:
+  enabled: true
+  real_orders_enabled: false
+  supported_positions: [LONG, SHORT, FLAT]
+  synthetic_point_value: 1.0
+  transaction_cost_points_per_side: 0.0
+  slippage_points_per_side: 0.0
+  max_position_units: 1
+  cooldown_bars: 0
+  close_positions_at_session_end: true
+
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  labels: data/labels
+  artifacts: artifacts
+  logs: logs

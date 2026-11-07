@@ -1,0 +1,23 @@
+# Core data and modelling
+numpy
+pandas
+pyarrow
+scikit-learn
+lightgbm
+torch
+ta
+
+# Data access
+yfinance
+requests
+websockets
+
+# Backend
+fastapi
+uvicorn[standard]
+pydantic
+sqlalchemy
+
+# Configuration and utilities
+python-dotenv
+PyYAML

@@ -1,0 +1,37 @@
+/*.md
+!README.md
+!AGENT_HANDOFF.md
+!AGENTS.md
+!tasks.md
+
+# Data directories (raw/processed caches)
+data/raw/
+data/processed/
+data/labels/
+!data/README.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets
+.env
+.env.local
