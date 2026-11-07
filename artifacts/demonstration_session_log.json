@@ -2,14 +2,14 @@
   "session_date": "2026-09-25",
   "total_steps": 78,
   "performance": {
-    "total_trades": 3,
-    "winning_trades": 2,
-    "losing_trades": 1,
-    "win_rate_pct": 66.7,
-    "gross_pnl_pts": -13.95,
-    "net_pnl_pts": -14.85,
-    "profit_factor": 0.09,
-    "max_drawdown_pts": 16.37
+    "total_trades": 1,
+    "winning_trades": 1,
+    "losing_trades": 0,
+    "win_rate_pct": 100.0,
+    "gross_pnl_pts": 19.56,
+    "net_pnl_pts": 19.26,
+    "profit_factor": 999.0,
+    "max_drawdown_pts": 0.0
   },
   "records": [
     {
@@ -19,8 +19,8 @@
       "price": 7723.78,
       "p_touch_up_calibrated": 0.9704,
       "expected_price_5m": 7724.3,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 2,
@@ -29,8 +29,8 @@
       "price": 7726.78,
       "p_touch_up_calibrated": 0.9613,
       "expected_price_5m": 7726.7,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 3,
@@ -39,8 +39,8 @@
       "price": 7724.29,
       "p_touch_up_calibrated": 0.9603,
       "expected_price_5m": 7724.57,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 4,
@@ -49,8 +49,8 @@
       "price": 7724.28,
       "p_touch_up_calibrated": 0.9662,
       "expected_price_5m": 7724.51,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 5,
@@ -59,8 +59,8 @@
       "price": 7730.54,
       "p_touch_up_calibrated": 0.9673,
       "expected_price_5m": 7730.53,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 6,
@@ -69,8 +69,8 @@
       "price": 7726.53,
       "p_touch_up_calibrated": 0.9595,
       "expected_price_5m": 7726.82,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 7,
@@ -80,7 +80,7 @@
       "p_touch_up_calibrated": 0.9606,
       "expected_price_5m": 7706.95,
       "action": "LONG",
-      "reason": "PRED_UP_MOMENTUM"
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 8,
@@ -89,8 +89,8 @@
       "price": 7706.04,
       "p_touch_up_calibrated": 0.9724,
       "expected_price_5m": 7706.39,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 9,
@@ -99,8 +99,8 @@
       "price": 7698.55,
       "p_touch_up_calibrated": 0.9635,
       "expected_price_5m": 7699.3,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 10,
@@ -109,8 +109,8 @@
       "price": 7699.8,
       "p_touch_up_calibrated": 0.9623,
       "expected_price_5m": 7700.16,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 11,
@@ -119,8 +119,8 @@
       "price": 7703.92,
       "p_touch_up_calibrated": 0.9679,
       "expected_price_5m": 7704.23,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 12,
@@ -129,8 +129,8 @@
       "price": 7703.04,
       "p_touch_up_calibrated": 0.9671,
       "expected_price_5m": 7703.15,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 13,
@@ -139,8 +139,8 @@
       "price": 7707.04,
       "p_touch_up_calibrated": 0.9663,
       "expected_price_5m": 7707.11,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 14,
@@ -149,8 +149,8 @@
       "price": 7711.78,
       "p_touch_up_calibrated": 0.9662,
       "expected_price_5m": 7711.85,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 15,
@@ -159,8 +159,8 @@
       "price": 7708.55,
       "p_touch_up_calibrated": 0.9632,
       "expected_price_5m": 7708.78,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 16,
@@ -169,8 +169,8 @@
       "price": 7712.41,
       "p_touch_up_calibrated": 0.9609,
       "expected_price_5m": 7712.48,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 17,
@@ -179,8 +179,8 @@
       "price": 7711.54,
       "p_touch_up_calibrated": 0.9681,
       "expected_price_5m": 7711.69,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 18,
@@ -189,8 +189,8 @@
       "price": 7717.29,
       "p_touch_up_calibrated": 0.9651,
       "expected_price_5m": 7717.15,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 19,
@@ -199,8 +199,8 @@
       "price": 7723.3,
       "p_touch_up_calibrated": 0.9644,
       "expected_price_5m": 7723.28,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 20,
@@ -209,8 +209,8 @@
       "price": 7720.53,
       "p_touch_up_calibrated": 0.9619,
       "expected_price_5m": 7720.62,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 21,
@@ -219,8 +219,8 @@
       "price": 7719.04,
       "p_touch_up_calibrated": 0.9667,
       "expected_price_5m": 7719.07,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 22,
@@ -229,8 +229,8 @@
       "price": 7714.79,
       "p_touch_up_calibrated": 0.9605,
       "expected_price_5m": 7714.84,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 23,
@@ -239,8 +239,8 @@
       "price": 7715.79,
       "p_touch_up_calibrated": 0.9599,
       "expected_price_5m": 7715.74,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 24,
@@ -249,8 +249,8 @@
       "price": 7717.03,
       "p_touch_up_calibrated": 0.9652,
       "expected_price_5m": 7716.98,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 25,
@@ -259,8 +259,8 @@
       "price": 7720.78,
       "p_touch_up_calibrated": 0.9661,
       "expected_price_5m": 7720.75,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 26,
@@ -269,8 +269,8 @@
       "price": 7711.53,
       "p_touch_up_calibrated": 0.9624,
       "expected_price_5m": 7711.72,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 27,
@@ -279,8 +279,8 @@
       "price": 7706.8,
       "p_touch_up_calibrated": 0.956,
       "expected_price_5m": 7706.85,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 28,
@@ -289,8 +289,8 @@
       "price": 7712.79,
       "p_touch_up_calibrated": 0.9639,
       "expected_price_5m": 7712.72,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 29,
@@ -299,8 +299,8 @@
       "price": 7713.79,
       "p_touch_up_calibrated": 0.9721,
       "expected_price_5m": 7713.74,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 30,
@@ -309,8 +309,8 @@
       "price": 7729.29,
       "p_touch_up_calibrated": 0.9668,
       "expected_price_5m": 7728.4,
-      "action": "SHORT",
-      "reason": "PRED_DOWN_TREND"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 31,
@@ -319,8 +319,8 @@
       "price": 7743.29,
       "p_touch_up_calibrated": 0.9739,
       "expected_price_5m": 7741.42,
-      "action": "SHORT",
-      "reason": "PRED_DOWN_TREND"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 32,
@@ -329,8 +329,8 @@
       "price": 7745.16,
       "p_touch_up_calibrated": 0.9618,
       "expected_price_5m": 7745.29,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 33,
@@ -339,8 +339,8 @@
       "price": 7745.54,
       "p_touch_up_calibrated": 0.9631,
       "expected_price_5m": 7745.74,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 34,
@@ -349,8 +349,8 @@
       "price": 7740.04,
       "p_touch_up_calibrated": 0.9635,
       "expected_price_5m": 7740.71,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 35,
@@ -359,8 +359,8 @@
       "price": 7734.28,
       "p_touch_up_calibrated": 0.966,
       "expected_price_5m": 7734.55,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 36,
@@ -369,8 +369,8 @@
       "price": 7746.04,
       "p_touch_up_calibrated": 0.973,
       "expected_price_5m": 7745.66,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 37,
@@ -379,8 +379,8 @@
       "price": 7736.8,
       "p_touch_up_calibrated": 0.9631,
       "expected_price_5m": 7737.17,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 38,
@@ -390,7 +390,7 @@
       "p_touch_up_calibrated": 0.9548,
       "expected_price_5m": 7740.72,
       "action": "LONG",
-      "reason": "PRED_UP_MOMENTUM"
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 39,
@@ -399,8 +399,8 @@
       "price": 7741.55,
       "p_touch_up_calibrated": 0.9649,
       "expected_price_5m": 7741.78,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 40,
@@ -409,8 +409,8 @@
       "price": 7736.55,
       "p_touch_up_calibrated": 0.9615,
       "expected_price_5m": 7736.95,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 41,
@@ -419,8 +419,8 @@
       "price": 7738.28,
       "p_touch_up_calibrated": 0.9597,
       "expected_price_5m": 7738.5,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 42,
@@ -429,8 +429,8 @@
       "price": 7734.29,
       "p_touch_up_calibrated": 0.9509,
       "expected_price_5m": 7734.61,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 43,
@@ -439,8 +439,8 @@
       "price": 7740.54,
       "p_touch_up_calibrated": 0.9642,
       "expected_price_5m": 7740.65,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 44,
@@ -449,8 +449,8 @@
       "price": 7740.66,
       "p_touch_up_calibrated": 0.9711,
       "expected_price_5m": 7740.76,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 45,
@@ -459,8 +459,8 @@
       "price": 7743.03,
       "p_touch_up_calibrated": 0.9678,
       "expected_price_5m": 7743.26,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 46,
@@ -469,8 +469,8 @@
       "price": 7739.28,
       "p_touch_up_calibrated": 0.9621,
       "expected_price_5m": 7739.37,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 47,
@@ -479,8 +479,8 @@
       "price": 7742.55,
       "p_touch_up_calibrated": 0.9658,
       "expected_price_5m": 7742.62,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 48,
@@ -489,8 +489,8 @@
       "price": 7743.03,
       "p_touch_up_calibrated": 0.9633,
       "expected_price_5m": 7743.1,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 49,
@@ -499,8 +499,8 @@
       "price": 7738.04,
       "p_touch_up_calibrated": 0.9621,
       "expected_price_5m": 7738.32,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 50,
@@ -509,8 +509,8 @@
       "price": 7739.3,
       "p_touch_up_calibrated": 0.9621,
       "expected_price_5m": 7739.27,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 51,
@@ -519,8 +519,8 @@
       "price": 7739.8,
       "p_touch_up_calibrated": 0.9615,
       "expected_price_5m": 7739.77,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 52,
@@ -529,8 +529,8 @@
       "price": 7741.54,
       "p_touch_up_calibrated": 0.9648,
       "expected_price_5m": 7741.51,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 53,
@@ -539,8 +539,8 @@
       "price": 7738.16,
       "p_touch_up_calibrated": 0.958,
       "expected_price_5m": 7738.23,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 54,
@@ -549,8 +549,8 @@
       "price": 7741.8,
       "p_touch_up_calibrated": 0.9661,
       "expected_price_5m": 7741.75,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 55,
@@ -559,8 +559,8 @@
       "price": 7740.78,
       "p_touch_up_calibrated": 0.9569,
       "expected_price_5m": 7740.81,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 56,
@@ -569,8 +569,8 @@
       "price": 7741.28,
       "p_touch_up_calibrated": 0.9612,
       "expected_price_5m": 7741.23,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 57,
@@ -579,8 +579,8 @@
       "price": 7744.8,
       "p_touch_up_calibrated": 0.9597,
       "expected_price_5m": 7744.75,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 58,
@@ -589,8 +589,8 @@
       "price": 7743.53,
       "p_touch_up_calibrated": 0.9627,
       "expected_price_5m": 7743.56,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 59,
@@ -599,8 +599,8 @@
       "price": 7743.55,
       "p_touch_up_calibrated": 0.9651,
       "expected_price_5m": 7743.5,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 60,
@@ -609,8 +609,8 @@
       "price": 7739.53,
       "p_touch_up_calibrated": 0.9619,
       "expected_price_5m": 7739.62,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 61,
@@ -619,8 +619,8 @@
       "price": 7742.42,
       "p_touch_up_calibrated": 0.9608,
       "expected_price_5m": 7742.37,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 62,
@@ -629,8 +629,8 @@
       "price": 7736.78,
       "p_touch_up_calibrated": 0.9609,
       "expected_price_5m": 7736.91,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 63,
@@ -639,8 +639,8 @@
       "price": 7740.79,
       "p_touch_up_calibrated": 0.9534,
       "expected_price_5m": 7740.74,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 64,
@@ -649,8 +649,8 @@
       "price": 7739.04,
       "p_touch_up_calibrated": 0.96,
       "expected_price_5m": 7739.08,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 65,
@@ -659,8 +659,8 @@
       "price": 7736.78,
       "p_touch_up_calibrated": 0.9564,
       "expected_price_5m": 7736.83,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 66,
@@ -669,8 +669,8 @@
       "price": 7737.29,
       "p_touch_up_calibrated": 0.9527,
       "expected_price_5m": 7737.22,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 67,
@@ -679,8 +679,8 @@
       "price": 7736.54,
       "p_touch_up_calibrated": 0.9574,
       "expected_price_5m": 7736.55,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 68,
@@ -689,8 +689,8 @@
       "price": 7737.55,
       "p_touch_up_calibrated": 0.9484,
       "expected_price_5m": 7737.48,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 69,
@@ -699,8 +699,8 @@
       "price": 7741.3,
       "p_touch_up_calibrated": 0.9602,
       "expected_price_5m": 7741.25,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 70,
@@ -709,8 +709,8 @@
       "price": 7738.55,
       "p_touch_up_calibrated": 0.9567,
       "expected_price_5m": 7738.6,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 71,
@@ -719,8 +719,8 @@
       "price": 7736.29,
       "p_touch_up_calibrated": 0.9553,
       "expected_price_5m": 7736.34,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 72,
@@ -729,8 +729,8 @@
       "price": 7733.8,
       "p_touch_up_calibrated": 0.9454,
       "expected_price_5m": 7733.85,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 73,
@@ -739,8 +739,8 @@
       "price": 7733.05,
       "p_touch_up_calibrated": 0.9506,
       "expected_price_5m": 7733.06,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 74,
@@ -749,8 +749,8 @@
       "price": 7740.29,
       "p_touch_up_calibrated": 0.9626,
       "expected_price_5m": 7740.26,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 75,
@@ -759,8 +759,8 @@
       "price": 7742.79,
       "p_touch_up_calibrated": 0.9634,
       "expected_price_5m": 7742.76,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 76,
@@ -769,8 +769,8 @@
       "price": 7748.28,
       "p_touch_up_calibrated": 0.9422,
       "expected_price_5m": 7748.08,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 77,
@@ -779,8 +779,8 @@
       "price": 7748.53,
       "p_touch_up_calibrated": 0.9319,
       "expected_price_5m": 7748.37,
-      "action": "HOLD",
-      "reason": "SAFE_HOLD"
+      "action": "LONG",
+      "reason": "OPEN_JEV_LONG"
     },
     {
       "step": 78,

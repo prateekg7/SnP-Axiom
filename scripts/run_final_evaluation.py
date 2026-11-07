@@ -171,6 +171,36 @@ def main():
     act_model[(r1_pred > 0.0001) & (cal_p_touch > 0.95)] = "LONG"
     act_model[r1_pred < -0.0001] = "SHORT"
 
+    # Open-Jev Decision Strategy
+    print("Evaluating Open-Jev Decision Layer over test split...")
+    from src.decision.jev import OpenJevDecisionProvider
+    open_jev_provider = OpenJevDecisionProvider(seed=42)
+    act_open_jev = np.full(n_test, "HOLD", dtype=object)
+    for i in range(n_test):
+        t_ny = raw_test["time_ny"].iloc[i]
+        if t_ny == "15:55":
+            act_open_jev[i] = "HOLD"
+            continue
+        p_ref = float(prices.iloc[i])
+        r1_v = float(r1_pred[i])
+        p_touch = float(cal_p_touch[i])
+        pred_h = float(p_ref * np.exp(float(preds["y_high30"][i])))
+        pred_l = float(p_ref * np.exp(float(preds["y_low30"][i])))
+        ctx = DecisionContext(
+            as_of=timestamps.iloc[i],
+            reference_price=p_ref,
+            p_touch_up=p_touch,
+            p_close_up=0.5,
+            expected_price_5m=float(p_ref * np.exp(r1_v)),
+            predicted_high_30m=pred_h,
+            predicted_low_30m=pred_l,
+            volatility_30m=float(preds["rv_30"][i]),
+            market_regime="trending_up" if r1_v > 0.0002 else ("trending_down" if r1_v < -0.0002 else "mean_reverting"),
+            prediction_interval={"nominal_coverage": 0.90, "lower": p_ref * np.exp(r1_v - q), "upper": p_ref * np.exp(r1_v + q), "empirical_coverage": empirical_cov},
+        )
+        dec = open_jev_provider.decide(ctx, forecast_id=f"test_{i}")
+        act_open_jev[i] = dec.action.value
+
     # Run simulations
     strategies = {
         "Always-UP Baseline": act_always_up,
@@ -179,6 +209,7 @@ def main():
         "MACD Baseline": act_macd,
         "MA Trend Baseline": act_ma,
         "AI Model Strategy": act_model,
+        "Open-Jev Strategy": act_open_jev,
     }
 
     results = {}
@@ -252,18 +283,10 @@ def main():
             prediction_interval={"nominal_coverage": 0.90, "lower": close_p * np.exp(r1_val - q), "upper": close_p * np.exp(r1_val + q)},
         )
         f_id = f"demo_{ts.strftime('%Y%m%d%H%M')}"
-        raw_dec = fallback.decide(ctx, f_id)
-
-        # Apply AI model rule if not fallback
-        if r1_val > 0.0001 and cal_p > 0.95:
-            action_chosen = "LONG"
-            reason_code = "PRED_UP_MOMENTUM"
-        elif r1_val < -0.0001:
-            action_chosen = "SHORT"
-            reason_code = "PRED_DOWN_TREND"
-        else:
-            action_chosen = "HOLD"
-            reason_code = "SAFE_HOLD"
+        raw_dec = open_jev_provider.decide(ctx, f_id)
+        checked_dec = risk_guard.validate(raw_dec, ctx)
+        action_chosen = checked_dec.action.value
+        reason_code = checked_dec.reason_code
 
         # On last candle of the day, force close
         if pos == len(demo_indices) - 1:
