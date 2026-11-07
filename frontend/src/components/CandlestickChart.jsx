@@ -1,16 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
 import { Activity } from 'lucide-react';
 
-// Lightweight Charts 2D canvas parser requires hex or rgb color strings
+// Lightweight Charts 2D canvas parser requires hex color strings
 const CHART_THEME = {
-  bgPaper: '#141c16',
-  inkMuted: '#688270',
-  ruleColor: '#233327',
-  accentGreen: '#3ee07f',
-  downRed: '#e65750',
-  pathBlue: '#5ba3e0',
-  bandPurple: '#ba8de5',
+  bgPaper: '#0e131f',
+  inkMuted: '#7988a3',
+  ruleColor: '#1d273b',
+  candleUp: '#2dd4bf',
+  candleDown: '#fb7185',
+  pathAzure: '#38bdf8',
+  highUp: '#34d399',
+  lowDown: '#f87171',
+  bandLavender: '#c084fc',
 };
 
 export default function CandlestickChart({ candles, forecast }) {
@@ -19,6 +21,10 @@ export default function CandlestickChart({ candles, forecast }) {
   const candleSeriesRef = useRef(null);
   const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
+
+  const [showPath, setShowPath] = useState(true);
+  const [showExtrema, setShowExtrema] = useState(true);
+  const [showBands, setShowBands] = useState(true);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -32,7 +38,7 @@ export default function CandlestickChart({ candles, forecast }) {
         background: { color: CHART_THEME.bgPaper },
         textColor: CHART_THEME.inkMuted,
         fontSize: 12,
-        fontFamily: "'Martian Mono', monospace",
+        fontFamily: "'Mona Sans', ui-sans-serif, sans-serif",
       },
       grid: {
         vertLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
@@ -50,19 +56,21 @@ export default function CandlestickChart({ candles, forecast }) {
         borderColor: CHART_THEME.ruleColor,
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 14,
+        barSpacing: 9,
       },
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: CHART_THEME.accentGreen,
-      downColor: CHART_THEME.downRed,
+      upColor: CHART_THEME.candleUp,
+      downColor: CHART_THEME.candleDown,
       borderVisible: false,
-      wickUpColor: CHART_THEME.accentGreen,
-      wickDownColor: CHART_THEME.downRed,
+      wickUpColor: CHART_THEME.candleUp,
+      wickDownColor: CHART_THEME.candleDown,
     });
 
     const pathSeries = chart.addLineSeries({
-      color: CHART_THEME.pathBlue,
+      color: CHART_THEME.pathAzure,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       title: '30m trajectory',
@@ -85,7 +93,7 @@ export default function CandlestickChart({ candles, forecast }) {
     };
   }, []);
 
-  // Update candle data
+  // Update candle data and forecast overlay
   useEffect(() => {
     if (!candleSeriesRef.current || !candles || candles.length === 0) return;
 
@@ -114,12 +122,12 @@ export default function CandlestickChart({ candles, forecast }) {
     });
     priceLinesRef.current = [];
 
-    // Add forecast lines if available
+    // Add forecast trajectory path
     if (forecast && formatted.length > 0) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
 
-      if (forecast.path_30m && forecast.path_30m.length > 0) {
+      if (showPath && forecast.path_30m && forecast.path_30m.length > 0) {
         const pathData = [{ time: lastTime, value: lastCandle.close }];
         forecast.path_30m.forEach((pt) => {
           pathData.push({
@@ -128,74 +136,85 @@ export default function CandlestickChart({ candles, forecast }) {
           });
         });
         pathSeriesRef.current?.setData(pathData);
+      } else {
+        pathSeriesRef.current?.setData([]);
       }
 
-      if (forecast.predicted_high_30m) {
+      if (showExtrema && forecast.predicted_high_30m) {
         const highLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_high_30m,
-          color: CHART_THEME.accentGreen,
+          color: CHART_THEME.highUp,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: 'pred high',
+          title: '30m high',
         });
         priceLinesRef.current.push(highLine);
       }
 
-      if (forecast.predicted_low_30m) {
+      if (showExtrema && forecast.predicted_low_30m) {
         const lowLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_low_30m,
-          color: CHART_THEME.downRed,
+          color: CHART_THEME.lowDown,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: 'pred low',
+          title: '30m low',
         });
         priceLinesRef.current.push(lowLine);
       }
 
-      if (forecast.prediction_interval) {
+      if (showBands && forecast.prediction_interval) {
         const upper = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.upper,
-          color: CHART_THEME.bandPurple,
+          color: CHART_THEME.bandLavender,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: true,
+          axisLabelVisible: false,
           title: '90% upper',
         });
         const lower = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.lower,
-          color: CHART_THEME.bandPurple,
+          color: CHART_THEME.bandLavender,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: true,
+          axisLabelVisible: false,
           title: '90% lower',
         });
         priceLinesRef.current.push(upper, lower);
       }
     }
-  }, [candles, forecast]);
+  }, [candles, forecast, showPath, showExtrema, showBands]);
 
   return (
-    <div className="card" style={{ padding: '1.25rem' }}>
+    <div className="card">
       <div className="card-title">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-xs)' }}>
           <Activity size={16} color="var(--color-blue)" />
           <span>S&P 500 five-minute candles and projected path</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-blue)' }}>
-            <span style={{ width: 8, height: 2, background: 'var(--color-blue)', display: 'inline-block' }}></span> 30m path
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-accent)' }}>
-            <span style={{ width: 8, height: 2, background: 'var(--color-accent)', display: 'inline-block' }}></span> pred high
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-down)' }}>
-            <span style={{ width: 8, height: 2, background: 'var(--color-down)', display: 'inline-block' }}></span> pred low
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-band)' }}>
-            <span style={{ width: 8, height: 2, background: 'var(--color-band)', display: 'inline-block' }}></span> 90% band
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2xs)' }}>
+          <button
+            type="button"
+            onClick={() => setShowPath(!showPath)}
+            className={`pill-btn ${showPath ? 'active' : ''}`}
+          >
+            30m path
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowExtrema(!showExtrema)}
+            className={`pill-btn ${showExtrema ? 'active' : ''}`}
+          >
+            extrema
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBands(!showBands)}
+            className={`pill-btn ${showBands ? 'active' : ''}`}
+          >
+            90% interval
+          </button>
         </div>
       </div>
       <div ref={chartContainerRef} style={{ width: '100%', height: '440px', overflow: 'hidden' }} />

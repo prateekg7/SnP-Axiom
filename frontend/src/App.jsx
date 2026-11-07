@@ -102,11 +102,11 @@ export default function App() {
         <PerformancePanel performance={performance} />
       </div>
 
-      <footer style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+      <footer style={{ marginTop: 'var(--space-md)', textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
         <p>
           SPX AI Trading Indicator v1.0 <span className="hairline">/</span> Multi-Task LSTM and LightGBM Benchmark <span className="hairline">/</span> Conformal Prediction Calibration
         </p>
-        <p style={{ marginTop: '0.25rem' }}>
+        <p style={{ marginTop: 'var(--space-2xs)' }}>
           Hypothetical decision system for research and evaluation only. Not financial advice. No broker integration.
         </p>
       </footer>

@@ -18,9 +18,9 @@ export default function DecisionBanner({ forecast }) {
 
   if (action === 'LONG') {
     config = {
-      color: 'var(--color-accent)',
-      bg: 'var(--color-accent-wash)',
-      border: 'var(--color-accent-border)',
+      color: 'var(--color-up)',
+      bg: 'var(--color-up-wash)',
+      border: 'var(--color-up-border)',
       icon: ArrowUpRight,
       label: 'long signal',
       description: 'Upward momentum and calibrated probability exceed risk threshold. Simulated long position active.',
@@ -43,44 +43,44 @@ export default function DecisionBanner({ forecast }) {
       style={{
         background: config.bg,
         border: `var(--rule-hair) solid ${config.border}`,
-        padding: '1rem 1.25rem',
+        padding: 'var(--space-md) var(--space-lg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem',
+        gap: 'var(--space-md)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
         <div
           style={{
             background: config.color,
             color: 'var(--color-paper)',
-            padding: '0.5rem',
+            padding: 'var(--space-xs)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Icon size={22} />
+          <Icon size={20} />
         </div>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.05rem', fontWeight: 600, color: config.color }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+            <span style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: config.color }}>
               Recommended action: {config.label}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', background: 'var(--color-paper)', padding: '0.15rem 0.5rem', border: 'var(--rule-hair) solid var(--color-rule)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', background: 'var(--color-paper)', padding: 'var(--space-3xs) var(--space-xs)', border: 'var(--rule-hair) solid var(--color-rule)' }}>
               rule: {reason}
             </span>
           </div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-ink-2)', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-ink-2)', marginTop: 'var(--space-3xs)' }}>
             {config.description}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
-        <ShieldCheck size={16} color="var(--color-accent)" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
+        <ShieldCheck size={16} color="var(--color-up)" />
         <span>Validation: passed ({forecast.forecast_id || 'ID'})</span>
       </div>
     </div>

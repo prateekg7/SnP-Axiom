@@ -33,6 +33,8 @@ Thumbs.db
 .vscode/
 .idea/
 .hallmark/
+.agents/
+skills-lock.json
 
 # Secrets
 .env
