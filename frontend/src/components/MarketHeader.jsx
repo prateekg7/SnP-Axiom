@@ -81,3 +81,4 @@ export default function MarketHeader({ market, isConnected, lastUpdated }) {
     </header>
   );
 }
+

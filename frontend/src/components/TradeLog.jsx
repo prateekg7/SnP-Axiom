@@ -155,3 +155,4 @@ export default function TradeLog({ forecastHistory, trades }) {
     </div>
   );
 }
+

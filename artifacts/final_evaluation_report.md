@@ -60,3 +60,4 @@ During this session:
 Decisions produced by this system are hypothetical paper trades. The application does not connect to any exchange, clearing house, or brokerage API.
 
 Because the underlying instrument is a cash index, users cannot buy or sell SPX directly. Any real-world implementation would require translating index targets into exchange-traded instruments such as cash-settled index options or E-mini futures, each of which introduces distinct basis risk, roll mechanics, and financing costs not modeled here.
+

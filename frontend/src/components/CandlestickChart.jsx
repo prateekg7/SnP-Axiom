@@ -195,3 +195,4 @@ export default function CandlestickChart({ candles, forecast }) {
     </div>
   );
 }
+

@@ -1,32 +1,77 @@
-# SPX AI Trading Indicator — Agent Handoff
+# SPX AI Trading Indicator
 
-This repository handoff defines an AI-assisted, paper-trading dashboard for the **S&P 500 cash index (SPX)**.
+An AI-assisted forecasting and paper-trading system for the S&P 500 cash index (SPX), featuring a multi-task LightGBM and LSTM forecasting pipeline, conformal prediction calibration, and a real-time React dashboard.
 
-## Read these first
+All trades and portfolio metrics are hypothetical paper-trading simulations. The system does not place live orders or connect to brokerages.
 
-1. [`prd.md`](prd.md) — product goals, users, UI and requirements.
-2. [`spec.md`](spec.md) — exact prediction targets, labels, metrics and data contracts.
-3. [`architecture.md`](architecture.md) — primary architecture to implement.
-4. [`tasks.md`](tasks.md) — implementation order and deliverables.
-5. [`backup.md`](backup.md) — alternative modelling approaches and fallback plans.
+## Architecture
 
-## Important decisions already made
+The project implements an end-to-end quantitative pipeline:
 
-- Instrument: S&P 500 index level (SPX), not SPY or ES futures.
-- Candle interval: 5 minutes.
-- New forecast/decision cycle: after each completed 5-minute candle.
-- Forecast window: next 30 minutes (six 5-minute bars).
-- Next-bar directional event: probability that the next 5-minute bar trades above the current reference price (`next_high > current_close`).
-- Also retain next-bar close-up probability as a separate diagnostic.
-- Price forecasts: next 5-minute expected price; six-step 30-minute trajectory; 30-minute maximum-high and minimum-low estimates; end-of-session expected close.
-- Trading: hypothetical only, long and short supported, no broker execution.
-- Decision layer: Jev is a hidden backend component above the forecasting model(s). The frontend must not expose Jev branding or implementation details.
-- UI: live/current SPX price where the chosen provider permits it, 5-minute forecast updates, predicted upper/lower levels and projected path, probability, expected price, volatility, market regime, prediction interval, trade log and hypothetical P&L.
-- Data budget: free sources preferred/required for the initial implementation. Do not silently substitute SPY or futures for SPX.
-- Do not claim that a delayed feed is real-time.
+- Data layer: Ingestion and validation of 5-minute SPX candles (`^GSPC`) with regular-session filtering (09:30 to 16:00 New York time). SPX has no native traded volume; volume entries represent aggregated constituent share counts.
+- Feature pipeline: 36 technical, volatility, candle morphology, and session progress features.
+- Multi-task forecasting: Models predicting next-candle touch-up probability (`next_high > current_close`), 5-minute expected return, 30-minute trajectory path, 30-minute extrema, end-of-session close, and realized volatility.
+- Calibration: Platt probability scaling and conformal prediction intervals with a 90% nominal target.
+- Decision layer: Pluggable decision provider with deterministic risk guards, cooldown timers, and safe hold fallbacks.
+- Paper trading: Execution simulator accounting for conservative fill timing, synthetic notional values, bid-ask spread costs, and slippage.
+- API and dashboard: FastAPI backend with REST and WebSocket endpoints serving an interactive React dashboard built with Lightweight Charts.
 
-## Status and source-of-truth rule
+## Quick start
 
-This package is a specification, not evidence that any provider has been successfully connected. Provider claims must be rechecked against current documentation and the actual account/key. In particular, **LSE `SPX.IDX` identity, five-minute historical depth, WebSocket freshness, free-tier limits and redistribution rights remain validation items**.
+### Prerequisites
 
-If a requirement is ambiguous, preserve the decision already recorded here and raise a focused question rather than inventing a new product direction.
+- Python 3.12
+- Node.js (v18 or newer)
+- uv package manager
+
+### Installation
+
+1. Create and activate a Python virtual environment:
+```bash
+uv venv .venv --python python3.12
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+2. Build the React frontend:
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+### Running the application
+
+Launch the FastAPI backend server:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Open `http://localhost:8000` in your browser. The backend serves the compiled dashboard and exposes the following endpoints:
+
+- `GET /api/market/latest`: Current quote, day range, and provider freshness.
+- `GET /api/market/candles`: Historical 5-minute OHLC bars.
+- `GET /api/forecast/latest`: Current calibrated probabilities and multi-horizon price projections.
+- `GET /api/forecast/history`: Immutable record of completed-candle forecasts.
+- `GET /api/trades`: Simulated paper-trading ledger.
+- `GET /api/performance`: Strategy metrics including net P&L, win rate, and drawdown.
+- `WebSocket /ws/market`: Five-second streaming market and forecast updates.
+
+For frontend development with hot module reloading:
+
+```bash
+cd frontend
+npm run dev
+```
+
+## Documentation
+
+- User guide: `docs/user_guide.md`
+- Final evaluation and benchmark report: `artifacts/final_evaluation_report.md`
+- Demonstration session replay log: `artifacts/demonstration_session_log.json`
+- Model comparison report: `artifacts/model_comparison_report.md`
+- Calibration report: `artifacts/calibration_and_uncertainty_report.md`
+- Data audit report: `data/audit_report.md`
+- Provider feasibility trial: `data/provider_trials.md`
