@@ -1,0 +1,85 @@
+{
+  "test_period": {
+    "start": "2026-09-24 14:30:00+00:00",
+    "end": "2026-11-06 20:55:00+00:00",
+    "n_bars": 2484
+  },
+  "forecast_metrics": {
+    "base_rate_brier": 0.0491,
+    "raw_brier": 0.0504,
+    "calibrated_brier": 0.0492,
+    "raw_ece": 0.0291,
+    "calibrated_ece": 0.0093,
+    "return_mae": 0.000487,
+    "return_rmse": 0.000724,
+    "conformal_empirical_coverage": 0.7774
+  },
+  "strategy_results": {
+    "Always-UP Baseline": {
+      "total_trades": 32,
+      "win_rate_pct": 50.0,
+      "gross_pnl": -366.33,
+      "net_pnl": -375.93,
+      "profit_factor": 0.48,
+      "max_drawdown": 406.96,
+      "avg_win": 21.96,
+      "avg_loss": 45.46,
+      "abstention_rate_pct": 98.7
+    },
+    "Momentum Baseline": {
+      "total_trades": 1256,
+      "win_rate_pct": 31.1,
+      "gross_pnl": -322.33,
+      "net_pnl": -699.13,
+      "profit_factor": 0.81,
+      "max_drawdown": 863.31,
+      "avg_win": 7.75,
+      "avg_loss": 4.3,
+      "abstention_rate_pct": 49.4
+    },
+    "RSI Baseline": {
+      "total_trades": 90,
+      "win_rate_pct": 67.8,
+      "gross_pnl": -176.17,
+      "net_pnl": -203.17,
+      "profit_factor": 0.54,
+      "max_drawdown": 279.34,
+      "avg_win": 3.93,
+      "avg_loss": 15.27,
+      "abstention_rate_pct": 96.4
+    },
+    "MACD Baseline": {
+      "total_trades": 201,
+      "win_rate_pct": 30.3,
+      "gross_pnl": -313.95,
+      "net_pnl": -374.25,
+      "profit_factor": 0.8,
+      "max_drawdown": 592.95,
+      "avg_win": 23.89,
+      "avg_loss": 13.08,
+      "abstention_rate_pct": 91.9
+    },
+    "MA Trend Baseline": {
+      "total_trades": 302,
+      "win_rate_pct": 19.9,
+      "gross_pnl": -236.55,
+      "net_pnl": -327.15,
+      "profit_factor": 0.81,
+      "max_drawdown": 601.53,
+      "avg_win": 23.61,
+      "avg_loss": 7.21,
+      "abstention_rate_pct": 87.8
+    },
+    "AI Model Strategy": {
+      "total_trades": 150,
+      "win_rate_pct": 40.7,
+      "gross_pnl": -264.67,
+      "net_pnl": -309.67,
+      "profit_factor": 0.56,
+      "max_drawdown": 329.03,
+      "avg_win": 6.37,
+      "avg_loss": 7.85,
+      "abstention_rate_pct": 94.0
+    }
+  }
+}

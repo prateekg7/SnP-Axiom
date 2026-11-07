@@ -132,19 +132,19 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 6 — Backend and frontend
 
-- [ ] Build FastAPI market-data endpoints.
-- [ ] Build completed-candle forecast scheduler.
-- [ ] Build live-price WebSocket/polling adapter according to provider capability.
-- [ ] Expose freshness and provider timestamp.
-- [ ] Build forecast-history and trade-log endpoints.
-- [ ] Build React dashboard.
-- [ ] Display price chart and forecast path.
-- [ ] Display predicted 30-minute high/low.
-- [ ] Display next-five-minute UP probability and expected price.
-- [ ] Display EOD expected close, interval, volatility and regime.
-- [ ] Display LONG/SHORT/HOLD action.
-- [ ] Display prediction log and trade/P&L history.
-- [ ] Ensure completed-candle forecast records are immutable.
+- [x] Build FastAPI market-data endpoints.
+- [x] Build completed-candle forecast scheduler.
+- [x] Build live-price WebSocket/polling adapter according to provider capability.
+- [x] Expose freshness and provider timestamp.
+- [x] Build forecast-history and trade-log endpoints.
+- [x] Build React dashboard.
+- [x] Display price chart and forecast path.
+- [x] Display predicted 30-minute high/low.
+- [x] Display next-five-minute UP probability and expected price.
+- [x] Display EOD expected close, interval, volatility and regime.
+- [x] Display LONG/SHORT/HOLD action.
+- [x] Display prediction log and trade/P&L history.
+- [x] Ensure completed-candle forecast records are immutable.
 
 **Deliverable:** Working local web application.
 
@@ -152,14 +152,14 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 7 — Final evaluation and demonstration
 
-- [ ] Run a chronological out-of-sample backtest.
-- [ ] Compare with always-UP, momentum, RSI, MACD and moving-average baselines.
-- [ ] Report probability quality, forecast errors and interval coverage.
-- [ ] Report hypothetical net P&L and drawdown under explicit assumptions.
-- [ ] Run one full live/delayed-feed demonstration day.
-- [ ] Clearly label provider delay and data limitations.
-- [ ] Freeze model and configuration for the demonstration.
-- [ ] Prepare a concise user guide and results report.
+- [x] Run a chronological out-of-sample backtest.
+- [x] Compare with always-UP, momentum, RSI, MACD and moving-average baselines.
+- [x] Report probability quality, forecast errors and interval coverage.
+- [x] Report hypothetical net P&L and drawdown under explicit assumptions.
+- [x] Run one full live/delayed-feed demonstration day.
+- [x] Clearly label provider delay and data limitations.
+- [x] Freeze model and configuration for the demonstration.
+- [x] Prepare a concise user guide and results report.
 
 **Deliverable:** Reproducible project, model artifacts, working dashboard and evaluation report.
 
