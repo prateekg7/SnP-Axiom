@@ -1,7 +1,7 @@
-/* Hallmark · shape: app screen · genre: atmospheric · theme: Midnight (deal 3/3, seed 500-financial-trading-terminal-e1d9·ac91ea10·2026-11-07·r0) · redesign: full
- * nav: edge-aligned institutional bar · hero: stage · footer: quiet compliance and model disclosure · signature: 30-minute forward trajectory path overlay · states: hover, focus-visible, active, disabled
- * axes: dark/grotesk-sans/cool · posture: committed · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: P, institutional quantitative trading terminal with Mona Sans and OKLCH color system */
+/* Hallmark · shape: app screen · genre: editorial · theme: Manifesto (by request) · redesign: full
+ * nav: edge-aligned bar with heavy ink rule · hero: stage · footer: quiet compliance and model disclosure · signature: 30-minute forward trajectory path overlay · states: hover, focus-visible, active, disabled
+ * axes: dark/display-condensed/warm · posture: committed · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: P, manifesto financial terminal with Anton display caps, Public Sans body, and fighting red accent */
 :root {
   color-scheme: dark;
   --space-3xs: 2px;
@@ -17,9 +17,9 @@
   --text-sm: 0.8125rem;
   --text-md: 0.9375rem;
   --text-lg: 1.125rem;
-  --text-xl: 1.35rem;
-  --text-2xl: 1.625rem;
-  --text-display: 1.875rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.728rem;
+  --text-display: 2.25rem;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
@@ -28,28 +28,31 @@
   --dur-short: 200ms;
   --dur-long: 400ms;
 
-  --color-paper: oklch(14% 0.048 264);
-  --color-paper-2: oklch(18.5% 0.052 264);
-  --color-paper-3: oklch(23% 0.055 264);
-  --color-ink: oklch(95% 0.016 250);
-  --color-ink-2: oklch(88% 0.05 245);
-  --color-muted: oklch(73% 0.04 256);
-  --color-rule: oklch(29% 0.058 264);
-  --color-rule-2: oklch(40% 0.06 262);
+  --color-paper: oklch(13% 0.01 60);
+  --color-paper-2: oklch(17% 0.011 60);
+  --color-paper-3: oklch(22% 0.012 60);
+  --color-ink: oklch(95% 0.014 85);
+  --color-ink-2: oklch(84% 0.012 80);
+  --color-muted: oklch(64% 0.016 65);
+  --color-rule: oklch(31% 0.014 60);
+  --color-rule-2: oklch(42% 0.018 60);
 
-  --color-accent: oklch(80% 0.11 230);
-  --color-accent-ink: oklch(16% 0.05 264);
-  --color-focus: oklch(84% 0.12 228);
-  --color-accent-wash: oklch(23% 0.055 230);
-  --color-accent-border: oklch(36% 0.08 230);
+  --color-accent: oklch(56% 0.228 28);
+  --color-accent-deep: oklch(49% 0.2 28);
+  --color-accent-text: oklch(64% 0.22 28);
+  --color-accent-ink: oklch(98.5% 0.004 90);
+  --color-focus: oklch(64% 0.22 28);
 
-  --color-up: oklch(76% 0.13 160);
-  --color-up-wash: oklch(20% 0.04 160);
-  --color-up-border: oklch(34% 0.08 160);
+  --color-accent-wash: oklch(22% 0.05 28);
+  --color-accent-border: oklch(38% 0.1 28);
 
-  --color-down: oklch(72% 0.15 25);
-  --color-down-wash: oklch(20% 0.04 25);
-  --color-down-border: oklch(34% 0.08 25);
+  --color-up: oklch(78% 0.12 145);
+  --color-up-wash: oklch(20% 0.03 145);
+  --color-up-border: oklch(34% 0.06 145);
+
+  --color-down: oklch(64% 0.228 28);
+  --color-down-wash: oklch(22% 0.05 28);
+  --color-down-border: oklch(38% 0.1 28);
 
   --color-hold: oklch(78% 0.11 75);
   --color-hold-wash: oklch(20% 0.03 75);
@@ -59,20 +62,21 @@
   --color-band-wash: oklch(20% 0.03 290);
   --color-band-border: oklch(34% 0.06 290);
 
-  --color-blue: oklch(80% 0.11 230);
-  --color-blue-wash: oklch(23% 0.055 230);
-  --color-blue-border: oklch(36% 0.08 230);
+  --color-blue: oklch(76% 0.11 230);
+  --color-blue-wash: oklch(22% 0.03 230);
+  --color-blue-border: oklch(36% 0.06 230);
 
-  --font-display: "Mona Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-display);
+  --font-display: "Anton", "Impact", sans-serif;
+  --font-body: "Public Sans", ui-sans-serif, system-ui, sans-serif;
   --radius-card: 0;
   --radius-pill: 0;
   --rule-hair: 1px;
-  --shadow-card: 0 16px 36px -16px oklch(6% 0.04 264 / 0.6);
+  --rule-bar: 4px;
+  --shadow-card: none;
 
-  --tracking-display: -0.015em;
-  --display-weight: 300;
-  --display-stretch: 125%;
+  --tracking-display: 0.004em;
+  --display-weight: 400;
+  --lh-tight: 0.9;
 }
 
 *, *::before, *::after {
@@ -87,7 +91,7 @@ html, body {
 
 body {
   background-color: var(--color-paper);
-  color: var(--color-ink);
+  color: var(--color-ink-2);
   font-family: var(--font-body);
   font-size: var(--text-md);
   -webkit-font-smoothing: antialiased;
@@ -98,8 +102,8 @@ body {
 }
 
 ::selection {
-  background: var(--color-accent-wash);
-  color: var(--color-ink);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 
 :focus-visible {
@@ -124,27 +128,30 @@ button:disabled {
 h1, h2 {
   font-family: var(--font-display);
   font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
   letter-spacing: var(--tracking-display);
-  line-height: 1.1;
+  text-transform: uppercase;
+  line-height: 1.02;
   overflow-wrap: break-word;
   min-width: 0;
   text-wrap: balance;
+  color: var(--color-ink);
 }
 
 h1 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-display);
 }
 
 h2 {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
 }
 
 h3 {
   font-family: var(--font-display);
   font-size: var(--text-md);
-  font-weight: 500;
-  line-height: 1.25;
+  font-weight: var(--display-weight);
+  text-transform: uppercase;
+  line-height: 1.1;
+  color: var(--color-ink);
 }
 
 p {
@@ -174,10 +181,15 @@ p {
   gap: var(--space-lg);
 }
 
+/* Heavy ink bar */
+.bar-ink {
+  border-bottom: var(--rule-bar) solid var(--color-ink);
+}
+
 /* Surfaces */
 .card {
   background-color: var(--color-paper-2);
-  color: var(--color-ink);
+  color: var(--color-ink-2);
   border: var(--rule-hair) solid var(--color-rule);
   padding: var(--space-lg);
 }
@@ -185,12 +197,11 @@ p {
 .card-raised {
   background-color: var(--color-paper-3);
   color: var(--color-ink);
-  box-shadow: var(--shadow-card);
 }
 
 .card-title {
   font-size: var(--text-sm);
-  color: var(--color-ink-2);
+  color: var(--color-ink);
   font-weight: 500;
   margin-bottom: var(--space-sm);
   display: flex;
@@ -279,9 +290,9 @@ p {
 }
 
 .pill-btn.active {
-  background-color: var(--color-paper-3);
-  color: var(--color-accent);
-  border-color: var(--color-accent-border);
+  background-color: var(--color-accent);
+  color: var(--color-accent-ink);
+  border-color: var(--color-accent);
 }
 
 /* Metric Tile */

@@ -17,7 +17,7 @@ export default function MarketHeader({ market, isConnected }) {
   const priceColor = isPositive ? 'var(--color-up)' : 'var(--color-down)';
 
   return (
-    <header className="card">
+    <header className="card bar-ink">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 'var(--space-md)' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-2xs)' }}>

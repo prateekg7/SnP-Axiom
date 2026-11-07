@@ -4,14 +4,14 @@ import { Activity } from 'lucide-react';
 
 // Lightweight Charts 2D canvas parser requires hex color strings
 const CHART_THEME = {
-  bgPaper: '#0e131f',
-  inkMuted: '#7988a3',
-  ruleColor: '#1d273b',
-  candleUp: '#2dd4bf',
-  candleDown: '#fb7185',
+  bgPaper: '#161413',
+  inkMuted: '#8d8680',
+  ruleColor: '#2d2927',
+  candleUp: '#52b788',
+  candleDown: '#e63946',
   pathAzure: '#38bdf8',
-  highUp: '#34d399',
-  lowDown: '#f87171',
+  highUp: '#52b788',
+  lowDown: '#e63946',
   bandLavender: '#c084fc',
 };
 
@@ -38,7 +38,7 @@ export default function CandlestickChart({ candles, forecast }) {
         background: { color: CHART_THEME.bgPaper },
         textColor: CHART_THEME.inkMuted,
         fontSize: 12,
-        fontFamily: "'Mona Sans', ui-sans-serif, sans-serif",
+        fontFamily: "'Public Sans', ui-sans-serif, sans-serif",
       },
       grid: {
         vertLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
