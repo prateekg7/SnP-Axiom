@@ -2,6 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
 import { Activity } from 'lucide-react';
 
+// Lightweight Charts 2D canvas parser requires hex or rgb color strings
+const CHART_THEME = {
+  bgPaper: '#141c16',
+  inkMuted: '#688270',
+  ruleColor: '#233327',
+  accentGreen: '#3ee07f',
+  downRed: '#e65750',
+  pathBlue: '#5ba3e0',
+  bandPurple: '#ba8de5',
+};
+
 export default function CandlestickChart({ candles, forecast }) {
   const chartContainerRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -12,53 +23,46 @@ export default function CandlestickChart({ candles, forecast }) {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Read computed tokens for chart canvas
-    const styles = getComputedStyle(document.documentElement);
-    const bgPaper = styles.getPropertyValue('--color-paper-2').trim() || '#131b15';
-    const inkMuted = styles.getPropertyValue('--color-muted').trim() || '#6e8574';
-    const ruleColor = styles.getPropertyValue('--color-rule').trim() || '#223326';
-    const accentGreen = styles.getPropertyValue('--color-accent').trim() || '#47e584';
-    const downRed = styles.getPropertyValue('--color-down').trim() || '#e85c54';
-    const pathBlue = styles.getPropertyValue('--color-blue').trim() || '#5ba3e0';
+    const containerWidth = chartContainerRef.current.clientWidth || 800;
 
     const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
+      width: containerWidth,
       height: 440,
       layout: {
-        background: { color: bgPaper },
-        textColor: inkMuted,
+        background: { color: CHART_THEME.bgPaper },
+        textColor: CHART_THEME.inkMuted,
         fontSize: 12,
         fontFamily: "'Martian Mono', monospace",
       },
       grid: {
-        vertLines: { color: ruleColor, style: LineStyle.Dotted },
-        horzLines: { color: ruleColor, style: LineStyle.Dotted },
+        vertLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
+        horzLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
       },
       crosshair: {
-        vertLine: { color: inkMuted, width: 1, style: LineStyle.Dashed },
-        horzLine: { color: inkMuted, width: 1, style: LineStyle.Dashed },
+        vertLine: { color: CHART_THEME.inkMuted, width: 1, style: LineStyle.Dashed },
+        horzLine: { color: CHART_THEME.inkMuted, width: 1, style: LineStyle.Dashed },
       },
       rightPriceScale: {
-        borderColor: ruleColor,
+        borderColor: CHART_THEME.ruleColor,
         autoScale: true,
       },
       timeScale: {
-        borderColor: ruleColor,
+        borderColor: CHART_THEME.ruleColor,
         timeVisible: true,
         secondsVisible: false,
       },
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: accentGreen,
-      downColor: downRed,
+      upColor: CHART_THEME.accentGreen,
+      downColor: CHART_THEME.downRed,
       borderVisible: false,
-      wickUpColor: accentGreen,
-      wickDownColor: downRed,
+      wickUpColor: CHART_THEME.accentGreen,
+      wickDownColor: CHART_THEME.downRed,
     });
 
     const pathSeries = chart.addLineSeries({
-      color: pathBlue,
+      color: CHART_THEME.pathBlue,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       title: '30m trajectory',
@@ -84,11 +88,6 @@ export default function CandlestickChart({ candles, forecast }) {
   // Update candle data
   useEffect(() => {
     if (!candleSeriesRef.current || !candles || candles.length === 0) return;
-
-    const styles = getComputedStyle(document.documentElement);
-    const accentGreen = styles.getPropertyValue('--color-accent').trim() || '#47e584';
-    const downRed = styles.getPropertyValue('--color-down').trim() || '#e85c54';
-    const bandPurple = styles.getPropertyValue('--color-band').trim() || '#b58ae0';
 
     const formatted = [];
     const seen = new Set();
@@ -134,7 +133,7 @@ export default function CandlestickChart({ candles, forecast }) {
       if (forecast.predicted_high_30m) {
         const highLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_high_30m,
-          color: accentGreen,
+          color: CHART_THEME.accentGreen,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
@@ -146,7 +145,7 @@ export default function CandlestickChart({ candles, forecast }) {
       if (forecast.predicted_low_30m) {
         const lowLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_low_30m,
-          color: downRed,
+          color: CHART_THEME.downRed,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
@@ -158,7 +157,7 @@ export default function CandlestickChart({ candles, forecast }) {
       if (forecast.prediction_interval) {
         const upper = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.upper,
-          color: bandPurple,
+          color: CHART_THEME.bandPurple,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
@@ -166,7 +165,7 @@ export default function CandlestickChart({ candles, forecast }) {
         });
         const lower = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.lower,
-          color: bandPurple,
+          color: CHART_THEME.bandPurple,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
