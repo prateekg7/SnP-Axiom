@@ -115,16 +115,16 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 5 — Hypothetical trading and P&L
 
-- [ ] Define configurable synthetic SPX point value/notional.
-- [ ] Define long/short/hold state transitions.
-- [ ] Define entry, exit, reversal, cooldown and end-of-day rules.
-- [ ] Define conservative fill timing.
-- [ ] Add configurable costs/slippage.
-- [ ] Calculate gross and net P&L.
-- [ ] Store all positions, fills and realized outcomes.
-- [ ] Prevent duplicate trade actions for one forecast.
-- [ ] Evaluate trade performance against baseline strategies.
-- [ ] Include sensitivity analysis for costs and thresholds.
+- [x] Define configurable synthetic SPX point value/notional.
+- [x] Define long/short/hold state transitions.
+- [x] Define entry, exit, reversal, cooldown and end-of-day rules.
+- [x] Define conservative fill timing.
+- [x] Add configurable costs/slippage.
+- [x] Calculate gross and net P&L.
+- [x] Store all positions, fills and realized outcomes.
+- [x] Prevent duplicate trade actions for one forecast.
+- [x] Evaluate trade performance against baseline strategies.
+- [x] Include sensitivity analysis for costs and thresholds.
 
 **Deliverable:** Reproducible paper-trading ledger and performance summary.
 
