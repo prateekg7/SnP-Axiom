@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
-import { Activity, Layers } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 export default function CandlestickChart({ candles, forecast }) {
   const chartContainerRef = useRef(null);
@@ -12,48 +12,56 @@ export default function CandlestickChart({ candles, forecast }) {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    // Create chart
+    // Read computed tokens for chart canvas
+    const styles = getComputedStyle(document.documentElement);
+    const bgPaper = styles.getPropertyValue('--color-paper-2').trim() || '#131b15';
+    const inkMuted = styles.getPropertyValue('--color-muted').trim() || '#6e8574';
+    const ruleColor = styles.getPropertyValue('--color-rule').trim() || '#223326';
+    const accentGreen = styles.getPropertyValue('--color-accent').trim() || '#47e584';
+    const downRed = styles.getPropertyValue('--color-down').trim() || '#e85c54';
+    const pathBlue = styles.getPropertyValue('--color-blue').trim() || '#5ba3e0';
+
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 440,
       layout: {
-        background: { color: '#161e2e' },
-        textColor: '#94a3b8',
+        background: { color: bgPaper },
+        textColor: inkMuted,
         fontSize: 12,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'Martian Mono', monospace",
       },
       grid: {
-        vertLines: { color: '#232e42', style: LineStyle.Dotted },
-        horzLines: { color: '#232e42', style: LineStyle.Dotted },
+        vertLines: { color: ruleColor, style: LineStyle.Dotted },
+        horzLines: { color: ruleColor, style: LineStyle.Dotted },
       },
       crosshair: {
-        vertLine: { color: '#475569', width: 1, style: LineStyle.Dashed },
-        horzLine: { color: '#475569', width: 1, style: LineStyle.Dashed },
+        vertLine: { color: inkMuted, width: 1, style: LineStyle.Dashed },
+        horzLine: { color: inkMuted, width: 1, style: LineStyle.Dashed },
       },
       rightPriceScale: {
-        borderColor: '#232e42',
+        borderColor: ruleColor,
         autoScale: true,
       },
       timeScale: {
-        borderColor: '#232e42',
+        borderColor: ruleColor,
         timeVisible: true,
         secondsVisible: false,
       },
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor: '#10b981',
-      downColor: '#ef4444',
+      upColor: accentGreen,
+      downColor: downRed,
       borderVisible: false,
-      wickUpColor: '#10b981',
-      wickDownColor: '#ef4444',
+      wickUpColor: accentGreen,
+      wickDownColor: downRed,
     });
 
     const pathSeries = chart.addLineSeries({
-      color: '#3b82f6',
+      color: pathBlue,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
-      title: '30m Forecast Path',
+      title: '30m trajectory',
     });
 
     chartInstanceRef.current = chart;
@@ -77,7 +85,11 @@ export default function CandlestickChart({ candles, forecast }) {
   useEffect(() => {
     if (!candleSeriesRef.current || !candles || candles.length === 0) return;
 
-    // Ensure sorted and unique timestamps
+    const styles = getComputedStyle(document.documentElement);
+    const accentGreen = styles.getPropertyValue('--color-accent').trim() || '#47e584';
+    const downRed = styles.getPropertyValue('--color-down').trim() || '#e85c54';
+    const bandPurple = styles.getPropertyValue('--color-band').trim() || '#b58ae0';
+
     const formatted = [];
     const seen = new Set();
     for (const c of candles) {
@@ -108,7 +120,6 @@ export default function CandlestickChart({ candles, forecast }) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
 
-      // 30m Forecast Path points
       if (forecast.path_30m && forecast.path_30m.length > 0) {
         const pathData = [{ time: lastTime, value: lastCandle.close }];
         forecast.path_30m.forEach((pt) => {
@@ -120,49 +131,46 @@ export default function CandlestickChart({ candles, forecast }) {
         pathSeriesRef.current?.setData(pathData);
       }
 
-      // Add Predicted High (green dashed line)
       if (forecast.predicted_high_30m) {
         const highLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_high_30m,
-          color: '#10b981',
+          color: accentGreen,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: '30m Pred High',
+          title: 'pred high',
         });
         priceLinesRef.current.push(highLine);
       }
 
-      // Add Predicted Low (red dashed line)
       if (forecast.predicted_low_30m) {
         const lowLine = candleSeriesRef.current.createPriceLine({
           price: forecast.predicted_low_30m,
-          color: '#ef4444',
+          color: downRed,
           lineWidth: 1,
           lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: '30m Pred Low',
+          title: 'pred low',
         });
         priceLinesRef.current.push(lowLine);
       }
 
-      // Add Conformal Interval bounds (purple dotted lines)
       if (forecast.prediction_interval) {
         const upper = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.upper,
-          color: '#a855f7',
+          color: bandPurple,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
-          title: '90% Upper Band',
+          title: '90% upper',
         });
         const lower = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.lower,
-          color: '#a855f7',
+          color: bandPurple,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
           axisLabelVisible: true,
-          title: '90% Lower Band',
+          title: '90% lower',
         });
         priceLinesRef.current.push(upper, lower);
       }
@@ -173,26 +181,25 @@ export default function CandlestickChart({ candles, forecast }) {
     <div className="card" style={{ padding: '1.25rem' }}>
       <div className="card-title">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Activity size={16} color="var(--accent-blue)" />
-          <span>S&P 500 5-Minute Candlestick Chart & 30-Minute Projected Path</span>
+          <Activity size={16} color="var(--color-blue)" />
+          <span>S&P 500 five-minute candles and projected path</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', textTransform: 'none' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#3b82f6' }}>
-            <span style={{ width: 8, height: 2, background: '#3b82f6', display: 'inline-block' }}></span> 30m Path
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-blue)' }}>
+            <span style={{ width: 8, height: 2, background: 'var(--color-blue)', display: 'inline-block' }}></span> 30m path
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#10b981' }}>
-            <span style={{ width: 8, height: 2, background: '#10b981', display: 'inline-block' }}></span> Pred High
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-accent)' }}>
+            <span style={{ width: 8, height: 2, background: 'var(--color-accent)', display: 'inline-block' }}></span> pred high
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#ef4444' }}>
-            <span style={{ width: 8, height: 2, background: '#ef4444', display: 'inline-block' }}></span> Pred Low
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-down)' }}>
+            <span style={{ width: 8, height: 2, background: 'var(--color-down)', display: 'inline-block' }}></span> pred low
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#a855f7' }}>
-            <span style={{ width: 8, height: 2, background: '#a855f7', display: 'inline-block' }}></span> 90% Conformal Interval
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--color-band)' }}>
+            <span style={{ width: 8, height: 2, background: 'var(--color-band)', display: 'inline-block' }}></span> 90% band
           </span>
         </div>
       </div>
-      <div ref={chartContainerRef} style={{ width: '100%', height: '440px', borderRadius: '4px', overflow: 'hidden' }} />
+      <div ref={chartContainerRef} style={{ width: '100%', height: '440px', overflow: 'hidden' }} />
     </div>
   );
 }
-

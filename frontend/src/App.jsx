@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import MarketHeader from './components/MarketHeader';
 import DecisionBanner from './components/DecisionBanner';
 import CandlestickChart from './components/CandlestickChart';
@@ -14,7 +14,6 @@ export default function App() {
   const [trades, setTrades] = useState([]);
   const [performance, setPerformance] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchAllData = async () => {
     try {
@@ -33,7 +32,6 @@ export default function App() {
       if (Array.isArray(fhRes)) setForecastHistory(fhRes);
       if (Array.isArray(tRes)) setTrades(tRes);
       if (!pRes.error) setPerformance(pRes);
-      setLastUpdated(new Date());
     } catch (err) {
       console.error('Error fetching initial API data:', err);
     }
@@ -42,7 +40,6 @@ export default function App() {
   useEffect(() => {
     fetchAllData();
 
-    // WebSocket connection with polling fallback
     let ws = null;
     let pollInterval = null;
 
@@ -61,7 +58,6 @@ export default function App() {
             const data = JSON.parse(event.data);
             if (data.type === 'tick' && data.market) {
               setMarket(data.market);
-              setLastUpdated(new Date());
             }
           } catch (e) {
             console.error('WS parse error', e);
@@ -82,7 +78,6 @@ export default function App() {
 
     connectWebSocket();
 
-    // Regular polling fallback every 10s to keep forecasts and candles updated
     pollInterval = setInterval(fetchAllData, 10000);
 
     return () => {
@@ -93,7 +88,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <MarketHeader market={market} isConnected={isConnected} lastUpdated={lastUpdated} />
+      <MarketHeader market={market} isConnected={isConnected} />
       
       <DecisionBanner forecast={forecast} />
 
@@ -107,15 +102,14 @@ export default function App() {
         <PerformancePanel performance={performance} />
       </div>
 
-      <footer style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+      <footer style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
         <p>
-          SPX AI Trading Indicator v1.0 • Multi-Task LSTM / LightGBM Benchmark • Conformal Prediction Calibration
+          SPX AI Trading Indicator v1.0 <span className="hairline">/</span> Multi-Task LSTM and LightGBM Benchmark <span className="hairline">/</span> Conformal Prediction Calibration
         </p>
         <p style={{ marginTop: '0.25rem' }}>
-          Hypothetical Decision System. For research and evaluation only. Not financial advice. No broker integration.
+          Hypothetical decision system for research and evaluation only. Not financial advice. No broker integration.
         </p>
       </footer>
     </div>
   );
 }
-

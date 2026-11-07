@@ -8,30 +8,30 @@ export default function DecisionBanner({ forecast }) {
   const reason = forecast.decision_reason || 'SAFE_HOLD';
 
   let config = {
-    color: 'var(--accent-amber)',
-    bg: 'var(--accent-amber-bg)',
-    border: 'rgba(245, 158, 11, 0.3)',
+    color: 'var(--color-hold)',
+    bg: 'var(--color-hold-wash)',
+    border: 'var(--color-hold-border)',
     icon: PauseCircle,
-    label: 'HOLD',
+    label: 'hold',
     description: 'Risk guard active: market conditions do not satisfy strict entry criteria. Position flat.',
   };
 
   if (action === 'LONG') {
     config = {
-      color: 'var(--accent-green)',
-      bg: 'var(--accent-green-bg)',
-      border: 'rgba(16, 185, 129, 0.4)',
+      color: 'var(--color-accent)',
+      bg: 'var(--color-accent-wash)',
+      border: 'var(--color-accent-border)',
       icon: ArrowUpRight,
-      label: 'LONG SIGNAL',
+      label: 'long signal',
       description: 'Upward momentum and calibrated probability exceed risk threshold. Simulated long position active.',
     };
   } else if (action === 'SHORT') {
     config = {
-      color: 'var(--accent-red)',
-      bg: 'var(--accent-red-bg)',
-      border: 'rgba(239, 68, 68, 0.4)',
+      color: 'var(--color-down)',
+      bg: 'var(--color-down-wash)',
+      border: 'var(--color-down-border)',
       icon: ArrowDownRight,
-      label: 'SHORT SIGNAL',
+      label: 'short signal',
       description: 'Downward trend and negative expected return. Simulated short position active.',
     };
   }
@@ -42,8 +42,7 @@ export default function DecisionBanner({ forecast }) {
     <div
       style={{
         background: config.bg,
-        border: `1px solid ${config.border}`,
-        borderRadius: '8px',
+        border: `var(--rule-hair) solid ${config.border}`,
         padding: '1rem 1.25rem',
         display: 'flex',
         alignItems: 'center',
@@ -56,36 +55,34 @@ export default function DecisionBanner({ forecast }) {
         <div
           style={{
             background: config.color,
-            color: '#fff',
-            borderRadius: '6px',
-            padding: '0.6rem',
+            color: 'var(--color-paper)',
+            padding: '0.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Icon size={24} />
+          <Icon size={22} />
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: config.color, letterSpacing: '0.02em' }}>
-              RECOMMENDED ACTION: {config.label}
+            <span style={{ fontSize: '1.05rem', fontWeight: 600, color: config.color }}>
+              Recommended action: {config.label}
             </span>
-            <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.25)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-              RULE: {reason}
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', background: 'var(--color-paper)', padding: '0.15rem 0.5rem', border: 'var(--rule-hair) solid var(--color-rule)' }}>
+              rule: {reason}
             </span>
           </div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-ink-2)', marginTop: '0.2rem' }}>
             {config.description}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-        <ShieldCheck size={16} color="var(--accent-green)" />
-        <span className="mono">Validation: PASSED (Immutable Record {forecast.forecast_id || 'ID'})</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+        <ShieldCheck size={16} color="var(--color-accent)" />
+        <span>Validation: passed ({forecast.forecast_id || 'ID'})</span>
       </div>
     </div>
   );
 }
-

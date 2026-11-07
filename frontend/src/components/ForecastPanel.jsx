@@ -1,12 +1,12 @@
 import React from 'react';
-import { Target, Compass, BarChart2, Zap, ArrowUp, ArrowDown } from 'lucide-react';
+import { Target } from 'lucide-react';
 
 export default function ForecastPanel({ forecast }) {
   if (!forecast) {
     return (
       <div className="card">
-        <div className="card-title">Forecast Overview</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Awaiting forecast data...</div>
+        <div className="card-title">Forecast overview</div>
+        <div style={{ color: 'var(--color-muted)', fontSize: '0.85rem' }}>Awaiting forecast data…</div>
       </div>
     );
   }
@@ -18,85 +18,84 @@ export default function ForecastPanel({ forecast }) {
   const delta5m = exp5m - refPrice;
 
   const regimeColors = {
-    trending_up: { color: 'var(--accent-green)', label: 'TRENDING UP' },
-    trending_down: { color: 'var(--accent-red)', label: 'TRENDING DOWN' },
-    mean_reverting: { color: 'var(--accent-blue)', label: 'MEAN REVERTING' },
+    trending_up: { color: 'var(--color-accent)', label: 'trending up' },
+    trending_down: { color: 'var(--color-down)', label: 'trending down' },
+    mean_reverting: { color: 'var(--color-blue)', label: 'mean reverting' },
   };
-  const reg = regimeColors[forecast.market_regime] || { color: 'var(--text-secondary)', label: forecast.market_regime || 'NEUTRAL' };
+  const reg = regimeColors[forecast.market_regime] || { color: 'var(--color-ink-2)', label: forecast.market_regime || 'neutral' };
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div className="card-title">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Target size={16} color="var(--accent-green)" />
-          <span>Multi-Task AI Forecast</span>
+          <Target size={16} color="var(--color-accent)" />
+          <span>Multi-task AI forecast</span>
         </div>
-        <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
           {forecast.forecast_id}
         </span>
       </div>
 
       {/* Probability Gauge / Card */}
-      <div className="metric-tile" style={{ background: 'rgba(16, 185, 129, 0.08)', borderColor: 'rgba(16, 185, 129, 0.25)' }}>
+      <div className="metric-tile" style={{ background: 'var(--color-paper)', border: 'var(--rule-hair) solid var(--color-accent-border)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="metric-label" style={{ color: 'var(--text-secondary)' }}>Next 5m Touch-UP Probability</span>
-          <span className="pill pill-green mono" style={{ fontSize: '0.7rem' }}>Platt Calibrated</span>
+          <span className="metric-label">Next 5m touch-up probability</span>
+          <span className="pill pill-green" style={{ fontSize: '0.7rem' }}>Platt calibrated</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginTop: '0.25rem' }}>
-          <div className="mono" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-green)' }}>
+          <div style={{ fontSize: '1.85rem', fontWeight: 600, color: 'var(--color-accent)' }}>
             {(pUp * 100).toFixed(1)}%
           </div>
-          <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
             (raw: {(rawPUp * 100).toFixed(1)}%)
           </span>
         </div>
-        {/* Progress Bar */}
-        <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, marginTop: '0.5rem', overflow: 'hidden' }}>
-          <div style={{ width: `${Math.min(100, Math.max(0, pUp * 100))}%`, height: '100%', background: 'var(--accent-green)', borderRadius: 3 }} />
+        <div style={{ height: 4, background: 'var(--color-rule)', marginTop: '0.5rem', overflow: 'hidden' }}>
+          <div style={{ width: `${Math.min(100, Math.max(0, pUp * 100))}%`, height: '100%', background: 'var(--color-accent)' }} />
         </div>
       </div>
 
       {/* 5m Expected Price & Regime */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem' }}>
         <div className="metric-tile">
-          <span className="metric-label">Expected 5m Price</span>
-          <div className="metric-value mono" style={{ color: delta5m >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+          <span className="metric-label">Expected 5m price</span>
+          <div className="metric-value" style={{ color: delta5m >= 0 ? 'var(--color-accent)' : 'var(--color-down)' }}>
             {exp5m.toFixed(2)}
           </div>
-          <span className="mono" style={{ fontSize: '0.7rem', color: delta5m >= 0 ? 'var(--accent-green)' : 'var(--accent-red)', marginTop: '0.2rem' }}>
+          <span style={{ fontSize: '0.7rem', color: delta5m >= 0 ? 'var(--color-accent)' : 'var(--color-down)', marginTop: '0.2rem' }}>
             {delta5m >= 0 ? '+' : ''}{delta5m.toFixed(2)} pts
           </span>
         </div>
 
         <div className="metric-tile">
-          <span className="metric-label">Market Regime</span>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: reg.color, marginTop: '0.25rem' }}>
+          <span className="metric-label">Market regime</span>
+          <div style={{ fontSize: '0.85rem', fontWeight: 600, color: reg.color, marginTop: '0.25rem' }}>
             {reg.label}
           </div>
-          <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
             30m RV: {(forecast.volatility_30m * 1000).toFixed(3)}
           </span>
         </div>
       </div>
 
       {/* 30m Extrema */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem' }}>
         <div className="metric-tile">
-          <span className="metric-label" style={{ color: 'var(--accent-green)' }}>30m Pred High</span>
-          <div className="metric-value mono" style={{ color: 'var(--accent-green)' }}>
+          <span className="metric-label" style={{ color: 'var(--color-accent)' }}>30m pred high</span>
+          <div className="metric-value" style={{ color: 'var(--color-accent)' }}>
             {forecast.predicted_high_30m?.toFixed(2)}
           </div>
-          <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
             +{((forecast.predicted_high_30m - refPrice) || 0).toFixed(2)} pts
           </span>
         </div>
 
         <div className="metric-tile">
-          <span className="metric-label" style={{ color: 'var(--accent-red)' }}>30m Pred Low</span>
-          <div className="metric-value mono" style={{ color: 'var(--accent-red)' }}>
+          <span className="metric-label" style={{ color: 'var(--color-down)' }}>30m pred low</span>
+          <div className="metric-value" style={{ color: 'var(--color-down)' }}>
             {forecast.predicted_low_30m?.toFixed(2)}
           </div>
-          <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
             {((forecast.predicted_low_30m - refPrice) || 0).toFixed(2)} pts
           </span>
         </div>
@@ -104,14 +103,14 @@ export default function ForecastPanel({ forecast }) {
 
       {/* 90% Conformal Interval */}
       {forecast.prediction_interval && (
-        <div className="metric-tile" style={{ background: 'rgba(168, 85, 247, 0.08)', borderColor: 'rgba(168, 85, 247, 0.25)' }}>
+        <div className="metric-tile" style={{ background: 'var(--color-paper)', border: 'var(--rule-hair) solid var(--color-band-border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="metric-label" style={{ color: '#c084fc' }}>90% Conformal Interval</span>
-            <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Empirical: {(forecast.prediction_interval.empirical_coverage * 100).toFixed(1)}%
+            <span className="metric-label" style={{ color: 'var(--color-band)' }}>90% conformal interval</span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-muted)' }}>
+              empirical: {(forecast.prediction_interval.empirical_coverage * 100).toFixed(1)}%
             </span>
           </div>
-          <div className="mono" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#e9d5ff', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--color-ink)', marginTop: '0.25rem' }}>
             [{forecast.prediction_interval.lower?.toFixed(2)}, {forecast.prediction_interval.upper?.toFixed(2)}]
           </div>
         </div>
@@ -120,19 +119,19 @@ export default function ForecastPanel({ forecast }) {
       {/* 30m Forecast Path Breakdown */}
       {forecast.path_30m && forecast.path_30m.length > 0 && (
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
-            30-Minute Trajectory Path
+          <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-muted)', marginBottom: '0.4rem' }}>
+            30-minute trajectory path
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.4rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '0.4rem' }}>
             {forecast.path_30m.map((pt) => {
               const d = pt.expected_close - refPrice;
               return (
-                <div key={pt.horizon_minutes} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 4, padding: '0.4rem 0.2rem', textAlign: 'center' }}>
-                  <div className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>+{pt.horizon_minutes}m</div>
-                  <div className="mono" style={{ fontSize: '0.75rem', fontWeight: 600, marginTop: '0.1rem' }}>
+                <div key={pt.horizon_minutes} style={{ background: 'var(--color-paper)', border: 'var(--rule-hair) solid var(--color-rule)', padding: '0.4rem 0.2rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--color-muted)' }}>+{pt.horizon_minutes}m</div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '0.1rem' }}>
                     {pt.expected_close.toFixed(1)}
                   </div>
-                  <div className="mono" style={{ fontSize: '0.65rem', color: d >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                  <div style={{ fontSize: '0.65rem', color: d >= 0 ? 'var(--color-accent)' : 'var(--color-down)' }}>
                     {d >= 0 ? '+' : ''}{d.toFixed(1)}
                   </div>
                 </div>
@@ -144,4 +143,3 @@ export default function ForecastPanel({ forecast }) {
     </div>
   );
 }
-
