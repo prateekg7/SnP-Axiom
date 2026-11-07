@@ -83,14 +83,14 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 3 — Calibration and uncertainty
 
-- [ ] Evaluate probability calibration.
-- [ ] Compare raw probabilities with Platt/logistic and isotonic calibration.
-- [ ] Evaluate Brier score, log loss, ROC-AUC, PR-AUC and reliability diagrams.
-- [ ] Generate prediction intervals for future price.
-- [ ] Measure nominal versus empirical interval coverage.
-- [ ] Evaluate 30-minute high/low errors.
-- [ ] Evaluate performance by time-of-day and volatility regime.
-- [ ] Keep final test period untouched.
+- [x] Evaluate probability calibration.
+- [x] Compare raw probabilities with Platt/logistic and isotonic calibration.
+- [x] Evaluate Brier score, log loss, ROC-AUC, PR-AUC and reliability diagrams.
+- [x] Generate prediction intervals for future price.
+- [x] Measure nominal versus empirical interval coverage.
+- [x] Evaluate 30-minute high/low errors.
+- [x] Evaluate performance by time-of-day and volatility regime.
+- [x] Keep final test period untouched.
 
 **Deliverable:** Calibrated forecast package and uncertainty report.
 
@@ -98,16 +98,16 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 4 — Jev decision layer
 
-- [ ] Read current TypeSafe Jev documentation and confirm access.
-- [ ] Confirm supported input/output interface, latency, rate limits, availability and pricing.
-- [ ] Design the Jev context payload using point-in-time model forecasts and trading state.
-- [ ] Implement the decision-provider interface.
-- [ ] Implement Jev adapter against verified contract only.
-- [ ] Implement safe HOLD fallback.
-- [ ] Validate all returned actions and reject invalid/late responses.
-- [ ] Add deterministic risk guard.
-- [ ] Compare Jev decisions against a conventional meta-classifier and simple threshold policy.
-- [ ] Record decisions and reason/status codes.
+- [x] Read current TypeSafe Jev documentation and confirm access.
+- [x] Confirm supported input/output interface, latency, rate limits, availability and pricing.
+- [x] Design the Jev context payload using point-in-time model forecasts and trading state.
+- [x] Implement the decision-provider interface.
+- [x] Implement Jev adapter against verified contract only.
+- [x] Implement safe HOLD fallback.
+- [x] Validate all returned actions and reject invalid/late responses.
+- [x] Add deterministic risk guard.
+- [x] Compare Jev decisions against a conventional meta-classifier and simple threshold policy.
+- [x] Record decisions and reason/status codes.
 
 **Deliverable:** Hidden decision layer with fallback and comparative evaluation.
 
