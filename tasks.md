@@ -64,18 +64,18 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ## Phase 2 — Baselines and primary models
 
-- [ ] Implement base-rate/always-UP probability baseline.
-- [ ] Implement previous-direction/momentum baseline.
-- [ ] Implement RSI strategy baseline.
-- [ ] Implement MACD crossover baseline.
-- [ ] Implement moving-average trend baseline.
-- [ ] Train LightGBM tabular benchmark.
-- [ ] Train LSTM multi-task primary model.
-- [ ] Compare multiple sequence-window lengths and modest model sizes.
-- [ ] Use chronological walk-forward validation.
-- [ ] Purge/embargo overlapping target windows at split boundaries.
-- [ ] Save model, scaler, feature schema and training cutoff.
-- [ ] Record classification, regression, extrema and volatility metrics.
+- [x] Implement base-rate/always-UP probability baseline.
+- [x] Implement previous-direction/momentum baseline.
+- [x] Implement RSI strategy baseline.
+- [x] Implement MACD crossover baseline.
+- [x] Implement moving-average trend baseline.
+- [x] Train LightGBM tabular benchmark.
+- [x] Train LSTM multi-task primary model.
+- [x] Compare multiple sequence-window lengths and modest model sizes.
+- [x] Use chronological walk-forward validation.
+- [x] Purge/embargo overlapping target windows at split boundaries.
+- [x] Save model, scaler, feature schema and training cutoff.
+- [x] Record classification, regression, extrema and volatility metrics.
 
 **Deliverable:** Model comparison report. Do not add Jev until there are credible out-of-sample forecasts.
 
