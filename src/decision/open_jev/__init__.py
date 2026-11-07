@@ -1,4 +1,4 @@
-from open_jev.main import (
+from .main import (
     Answer,
     BidirectionalBlock,
     Choice,

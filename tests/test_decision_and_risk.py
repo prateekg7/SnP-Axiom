@@ -51,3 +51,27 @@ def test_risk_guard_rejects_stale_data():
     checked = guard.validate(raw_dec, ctx)
     assert checked.action == Action.HOLD
     assert "REJECTED_STALE_DATA" in checked.reason_code
+
+
+def test_open_jev_decision_provider():
+    from src.decision.jev import OpenJevDecisionProvider
+    provider = OpenJevDecisionProvider(seed=42)
+    dt = datetime(2026, 10, 14, 14, 0, tzinfo=timezone.utc)
+    ctx = DecisionContext(
+        as_of=dt,
+        reference_price=5000.0,
+        p_touch_up=0.95,
+        p_close_up=0.52,
+        expected_price_5m=5002.0,
+        predicted_high_30m=5010.0,
+        predicted_low_30m=4990.0,
+        volatility_30m=0.0012,
+        market_regime="trending_up",
+        is_stale=False,
+        is_valid_forecast=True,
+    )
+    dec = provider.decide(ctx, forecast_id="fc_jev_01")
+    assert dec.forecast_id == "fc_jev_01"
+    assert dec.provider == "open_jev"
+    assert dec.action in (Action.HOLD, Action.LONG, Action.SHORT)
+    assert dec.validation_status == "verified"
