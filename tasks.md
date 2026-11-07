@@ -7,36 +7,36 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 ## Phase 0 — Project setup and data feasibility
 
 ### 0.1 Repository setup
-- [ ] Create the repository structure in `architecture.md`.
-- [ ] Add README, configuration, environment template and dependency file.
-- [ ] Keep API keys out of source control.
-- [ ] Decide local Python environment and frontend package manager.
+- [x] Create the repository structure in `architecture.md`.
+- [x] Add README, configuration, environment template and dependency file.
+- [x] Keep API keys out of source control.
+- [x] Decide local Python environment and frontend package manager.
 
 ### 0.2 Provider investigation — perform sequentially
-- [ ] Trial LSE first.
-- [ ] Confirm exact SPX symbol identity.
-- [ ] Retrieve sample 5-minute candles.
-- [ ] Inspect earliest available 5-minute history.
-- [ ] Inspect live WebSocket for this exact symbol.
-- [ ] Verify source timestamp, delay and update cadence.
-- [ ] Verify free-tier quotas and data redistribution terms.
-- [ ] If LSE fails identity/history checks, trial free GetData GitHub sample.
-- [ ] Trial Yahoo Finance `^GSPC` as a short-history comparison only.
-- [ ] Record each provider result in `data/provider_trials.md`.
-- [ ] Do not combine incompatible sources without a documented comparison.
+- [x] Trial LSE first.
+- [x] Confirm exact SPX symbol identity.
+- [x] Retrieve sample 5-minute candles.
+- [x] Inspect earliest available 5-minute history.
+- [x] Inspect live WebSocket for this exact symbol.
+- [x] Verify source timestamp, delay and update cadence.
+- [x] Verify free-tier quotas and data redistribution terms.
+- [x] If LSE fails identity/history checks, trial free GetData GitHub sample.
+- [x] Trial Yahoo Finance `^GSPC` as a short-history comparison only.
+- [x] Record each provider result in `data/provider_trials.md`.
+- [x] Do not combine incompatible sources without a documented comparison.
 
 **Deliverable:** Provider trial report and one chosen canonical SPX dataset.
 
 ### 0.3 Dataset audit
-- [ ] Save immutable raw download.
-- [ ] Normalize column names and timezone.
-- [ ] Establish session calendar and five-minute bar semantics.
-- [ ] Count rows, sessions, gaps, duplicates and missing values.
-- [ ] Check OHLC invariants and outliers.
-- [ ] Check whether volume is actual, tick volume, proxy or unavailable.
-- [ ] Compare overlapping prices with an independent reference.
-- [ ] Produce coverage report by year/month/session.
-- [ ] Establish as-of-date training cutoff logic and label maturity rules.
+- [x] Save immutable raw download.
+- [x] Normalize column names and timezone.
+- [x] Establish session calendar and five-minute bar semantics.
+- [x] Count rows, sessions, gaps, duplicates and missing values.
+- [x] Check OHLC invariants and outliers.
+- [x] Check whether volume is actual, tick volume, proxy or unavailable.
+- [x] Compare overlapping prices with an independent reference.
+- [x] Produce coverage report by year/month/session.
+- [x] Establish as-of-date training cutoff logic and label maturity rules.
 
 **Deliverable:** Clean canonical Parquet dataset plus a concise audit report.
 
