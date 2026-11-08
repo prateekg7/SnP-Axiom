@@ -36,7 +36,7 @@ export default function ForecastLogTable({ history = [] }) {
               <th scope="col">time (et)</th>
               <th scope="col">ref price</th>
               <th scope="col">5m pred</th>
-              <th scope="col">touch prob</th>
+              <th scope="col">target prob</th>
               <th scope="col">action</th>
               <th scope="col">status</th>
             </tr>
@@ -83,3 +83,4 @@ export default function ForecastLogTable({ history = [] }) {
     </div>
   );
 }
+

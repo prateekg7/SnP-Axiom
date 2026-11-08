@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Grid, BarChart2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Grid } from 'lucide-react';
 
 const MATRICES = {
-  'AI Forecaster': {
-    name: 'AI Forecaster',
-    tag: 'LSTM Multi-task',
+  'Directional Model': {
+    name: 'Directional Model',
+    tag: 'Active Model',
     TP: 651,
     FN: 582,
     FP: 641,
@@ -14,11 +14,11 @@ const MATRICES = {
     recall: 52.80,
     f1: 0.516,
     total: 2484,
-    note: 'Highest directional accuracy & recall across all baselines',
+    note: 'Directional classification across 2,484 out-of-sample 5-minute bars',
   },
-  'RSI Baseline': {
-    name: 'RSI Baseline',
-    tag: 'RSI < 0.50',
+  'RSI Benchmark': {
+    name: 'RSI Benchmark',
+    tag: 'Momentum Filter',
     TP: 634,
     FN: 599,
     FP: 640,
@@ -28,11 +28,11 @@ const MATRICES = {
     recall: 51.42,
     f1: 0.506,
     total: 2484,
-    note: 'Secondary mean-reversion filter benchmark',
+    note: 'Fixed RSI threshold mean-reversion benchmark',
   },
-  'MA Trend': {
-    name: 'MA Trend',
-    tag: 'Fast/Slow EMA',
+  'Trend Benchmark': {
+    name: 'Trend Benchmark',
+    tag: 'Moving Average',
     TP: 599,
     FN: 634,
     FP: 600,
@@ -42,11 +42,11 @@ const MATRICES = {
     recall: 48.58,
     f1: 0.493,
     total: 2484,
-    note: 'Trend-following moving average crossover',
+    note: 'Fast and slow exponential moving average trend crossover',
   },
-  'Momentum Baseline': {
-    name: 'Momentum Baseline',
-    tag: '3-bar return',
+  'Momentum Benchmark': {
+    name: 'Momentum Benchmark',
+    tag: '3-bar Return',
     TP: 615,
     FN: 618,
     FP: 636,
@@ -56,11 +56,11 @@ const MATRICES = {
     recall: 49.88,
     f1: 0.495,
     total: 2484,
-    note: 'Suffers severe whipsaw in intraday SPX chop',
+    note: 'Short-horizon price momentum return indicator',
   },
-  'MACD Baseline': {
-    name: 'MACD Baseline',
-    tag: 'Histogram',
+  'MACD Benchmark': {
+    name: 'MACD Benchmark',
+    tag: 'Signal Line',
     TP: 551,
     FN: 682,
     FP: 585,
@@ -70,11 +70,11 @@ const MATRICES = {
     recall: 44.69,
     f1: 0.465,
     total: 2484,
-    note: 'Lags significantly on 5-minute cash index bars',
+    note: 'Standard MACD histogram signal crossover',
   },
-  'Always-UP Baseline': {
-    name: 'Always-UP Baseline',
-    tag: 'Permabull',
+  'Unconditional Baseline': {
+    name: 'Unconditional Baseline',
+    tag: 'Base Rate',
     TP: 1233,
     FN: 0,
     FP: 1251,
@@ -84,13 +84,13 @@ const MATRICES = {
     recall: 100.0,
     f1: 0.663,
     total: 2484,
-    note: 'Theoretical base rate benchmark (49.64% UP bars)',
+    note: 'Unconditional upward market drift (49.64% baseline frequency)',
   },
 };
 
 const TOUCH_MATRIX = {
-  name: 'Touch-UP (+3.0 pts Barrier)',
-  tag: '30m Horizon',
+  name: 'Target Barrier (+3.0 pts)',
+  tag: '30m Window',
   TP: 124,
   FN: 10,
   FP: 198,
@@ -100,14 +100,14 @@ const TOUCH_MATRIX = {
   recall: 92.54,
   f1: 0.544,
   total: 2484,
-  note: '92.5% sensitivity catching intraday +3.0 pt rallies',
+  note: 'Sensitivity catching +3.0 point upside runs within 6 bars',
 };
 
 export default function ConfusionMatrixHeatmap({ stats }) {
-  const [activeModel, setActiveModel] = useState('AI Forecaster');
+  const [activeModel, setActiveModel] = useState('Directional Model');
   const [matrixType, setMatrixType] = useState('direction');
 
-  const current = matrixType === 'direction' ? (MATRICES[activeModel] || MATRICES['AI Forecaster']) : TOUCH_MATRIX;
+  const current = matrixType === 'direction' ? (MATRICES[activeModel] || MATRICES['Directional Model']) : TOUCH_MATRIX;
   const total = current.total;
 
   const tpPct = ((current.TP / total) * 100).toFixed(1);
@@ -120,7 +120,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
       <div className="panel-headline">
         <div className="headline-badge">
           <Grid size={14} className="icon-grid" />
-          <h2 className="headline-title">Confusion matrix heatmap</h2>
+          <h2 className="headline-title">Directional accuracy matrix</h2>
         </div>
 
         <div className="matrix-type-toggle">
@@ -129,14 +129,14 @@ export default function ConfusionMatrixHeatmap({ stats }) {
             onClick={() => setMatrixType('direction')}
             className={`matrix-toggle-btn ${matrixType === 'direction' ? 'active' : ''}`}
           >
-            5m direction (up/down)
+            5m direction
           </button>
           <button
             type="button"
             onClick={() => setMatrixType('touch')}
             className={`matrix-toggle-btn ${matrixType === 'touch' ? 'active' : ''}`}
           >
-            touch-up (+3.0 pts)
+            target barrier
           </button>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
       {/* Model Benchmark Selector */}
       {matrixType === 'direction' && (
         <div className="model-selector-row">
-          <span className="selector-label">Model:</span>
+          <span className="selector-label">Benchmark:</span>
           <div className="model-pills-wrap">
             {Object.keys(MATRICES).map((mName) => (
               <button
@@ -165,7 +165,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
         <div className="heatmap-table-wrap">
           {/* Top Column Labels */}
           <div className="matrix-col-headers">
-            <div className="axis-corner-label">actual \ pred</div>
+            <div className="axis-corner-label">actual \ predicted</div>
             <div className="axis-col-label">pred UP</div>
             <div className="axis-col-label">pred DOWN</div>
           </div>
@@ -175,13 +175,13 @@ export default function ConfusionMatrixHeatmap({ stats }) {
             <div className="axis-row-label">act UP</div>
             {/* TP Cell */}
             <div className="heatmap-cell cell-tp">
-              <div className="cell-type-tag">TP (true up)</div>
+              <div className="cell-type-tag">True Up</div>
               <div className="cell-count-big">{current.TP}</div>
               <div className="cell-pct-sub">{tpPct}% of test set</div>
             </div>
             {/* FN Cell */}
             <div className="heatmap-cell cell-fn">
-              <div className="cell-type-tag">FN (missed up)</div>
+              <div className="cell-type-tag">False Down</div>
               <div className="cell-count-big">{current.FN}</div>
               <div className="cell-pct-sub">{fnPct}% of test set</div>
             </div>
@@ -192,13 +192,13 @@ export default function ConfusionMatrixHeatmap({ stats }) {
             <div className="axis-row-label">act DOWN</div>
             {/* FP Cell */}
             <div className="heatmap-cell cell-fp">
-              <div className="cell-type-tag">FP (false up)</div>
+              <div className="cell-type-tag">False Up</div>
               <div className="cell-count-big">{current.FP}</div>
               <div className="cell-pct-sub">{fpPct}% of test set</div>
             </div>
             {/* TN Cell */}
             <div className="heatmap-cell cell-tn">
-              <div className="cell-type-tag">TN (true down)</div>
+              <div className="cell-type-tag">True Down</div>
               <div className="cell-count-big">{current.TN}</div>
               <div className="cell-pct-sub">{tnPct}% of test set</div>
             </div>
@@ -217,7 +217,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
         <div className="metric-pill-card">
           <span className="metric-card-label">precision</span>
           <span className="metric-card-val">{current.precision.toFixed(2)}%</span>
-          <span className="metric-card-sub">ppv score</span>
+          <span className="metric-card-sub">precision rate</span>
         </div>
 
         <div className="metric-pill-card">
@@ -235,7 +235,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
 
       <div className="matrix-footer-note">
         <span className="footer-tag">{current.tag}</span>
-        <span className="footer-desc">{current.note} (2,484 held-out test bars)</span>
+        <span className="footer-desc">{current.note}</span>
       </div>
     </div>
   );

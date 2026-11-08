@@ -164,12 +164,12 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       wickDownColor: colors.candleDown,
     });
 
-    // AI Prediction Trajectory Path
+    // Forecast Trajectory Path
     const pathSeries = chart.addLineSeries({
       color: colors.pathColor,
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
-      title: 'AI 30m Trajectory',
+      title: '30m Trajectory',
       priceLineVisible: false,
     });
 
@@ -371,10 +371,10 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
             type="button"
             onClick={() => setShowPredictions(!showPredictions)}
             className={`chart-pill-toggle ${showPredictions ? 'active' : ''}`}
-            title="Toggle AI Prediction Lines"
+            title="Toggle Forecast Trajectory and Bands"
           >
             {showPredictions ? <Eye size={12} /> : <EyeOff size={12} />}
-            <span>AI predicting lines</span>
+            <span>Forecast path</span>
           </button>
 
           <button

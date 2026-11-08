@@ -3,6 +3,7 @@
 !AGENT_HANDOFF.md
 !AGENTS.md
 !tasks.md
+!DESIGN.md
 
 # Data directories (raw/processed caches)
 data/raw/

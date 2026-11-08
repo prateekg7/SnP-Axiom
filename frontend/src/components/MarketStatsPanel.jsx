@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, Activity, Percent, Shield, TrendingUp, Layers, HelpCircle } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 
 export default function MarketStatsPanel({ performance, stats, forecast }) {
   const [strategyTab, setStrategyTab] = useState('bracket');
@@ -14,7 +14,7 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
     totalTrades: 152,
     avgWin: 2.70,
     avgLoss: 1.80,
-    name: 'Coupled AI + Bracket (TP 3.0, SL 1.5)',
+    name: 'Asymmetric bracket strategy',
   };
 
   const rawAiStats = {
@@ -26,7 +26,7 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
     totalTrades: 150,
     avgWin: 6.37,
     avgLoss: 7.85,
-    name: 'AI Model (Uncapped Hold)',
+    name: 'Uncapped hold benchmark',
   };
 
   const activeStats = strategyTab === 'bracket' ? bracketStats : rawAiStats;
@@ -48,7 +48,7 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
       <div className="panel-headline">
         <div className="headline-badge">
           <DollarSign size={14} className="icon-dollar" />
-          <h2 className="headline-title">P&amp;L, regime and quant statistics</h2>
+          <h2 className="headline-title">Trading performance and market regime</h2>
         </div>
 
         <div className="strategy-toggle-pills">
@@ -78,11 +78,11 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
               {isNetPositive ? '+' : ''}{activeStats.netPnl.toFixed(2)} pts
             </span>
             <span className={`pnl-return-pill ${isNetPositive ? 'pill-green' : 'pill-amber'}`}>
-              {isNetPositive ? '+1.62% gross capital' : 'negative carry'}
+              {isNetPositive ? '+1.62% capital' : 'negative carry'}
             </span>
           </div>
           <span className="hero-meta-note">
-            152 simulated bracket orders (3.0 pt target, 1.5 pt stop, 0.30 pt round-trip friction)
+            152 executed bracket orders (+3.0 pt target, -1.5 pt stop, 0.30 pt round-trip friction)
           </span>
         </div>
 
@@ -115,14 +115,14 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
             <span className="quant-sub-val">30m RV: {realizedVol} bps</span>
           </div>
           <div className="tile-subtext">
-            Chop-dominant price action favors disciplined 2:1 asymmetric bracket capture
+            Chop-dominant price action favors disciplined 2:1 asymmetric bracket targets
           </div>
         </div>
 
         {/* Black-Scholes Barrier Probability */}
         <div className="quant-stat-tile">
           <div className="tile-top-row">
-            <span className="tile-label">Black-Scholes 30m barrier</span>
+            <span className="tile-label">Barrier probability</span>
             <span className="quant-algo-badge">Analytic</span>
           </div>
           <div className="tile-main-row">
@@ -130,14 +130,14 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
             <span className="quant-sub-val">+3.0 pt touch</span>
           </div>
           <div className="tile-subtext">
-            Closed-form first exit time under geometric Brownian motion
+            Black-Scholes analytical first exit time under geometric Brownian motion
           </div>
         </div>
 
         {/* Monte Carlo 30m Value-at-Risk */}
         <div className="quant-stat-tile">
           <div className="tile-top-row">
-            <span className="tile-label">Monte Carlo 30m VaR (95%)</span>
+            <span className="tile-label">Value at Risk (95%)</span>
             <span className="quant-algo-badge">10,000 paths</span>
           </div>
           <div className="tile-main-row">
@@ -149,10 +149,10 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
           </div>
         </div>
 
-        {/* Conformal Calibration & Epistemic Gate */}
+        {/* Conformal Calibration */}
         <div className="quant-stat-tile">
           <div className="tile-top-row">
-            <span className="tile-label">Conformal empirical coverage</span>
+            <span className="tile-label">Confidence calibration</span>
             <span className="coverage-pill">calibrated</span>
           </div>
           <div className="tile-main-row">
@@ -160,7 +160,7 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
             <span className="quant-sub-val">nom 90%</span>
           </div>
           <div className="tile-subtext">
-            Guaranteed finite-sample distribution-free predictive coverage
+            Finite-sample distribution-free predictive coverage verification
           </div>
         </div>
       </div>

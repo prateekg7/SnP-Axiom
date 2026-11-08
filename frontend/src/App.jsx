@@ -142,7 +142,7 @@ export default function App() {
           <span>Hypothetical quantitative simulation. Target instrument: S&amp;P 500 Cash Index (SPX).</span>
         </div>
         <div className="footer-right">
-          <span>LSTM multi-task forecaster + Open-Jev epistemic filter</span>
+          <span>Quantitative forecast models and bracket order simulation</span>
         </div>
       </footer>
     </div>
