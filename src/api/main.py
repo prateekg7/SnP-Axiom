@@ -375,6 +375,15 @@ def get_performance():
     }
 
 
+@app.get("/api/evaluation/stats")
+def get_evaluation_stats():
+    eval_path = Path("artifacts/final_evaluation_stats.json")
+    if eval_path.exists():
+        with open(eval_path, "r") as f:
+            return json.load(f)
+    return {"error": "Evaluation stats not found"}
+
+
 @app.websocket("/ws/market")
 async def websocket_market_endpoint(websocket: WebSocket):
     await websocket.accept()
