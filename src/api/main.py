@@ -2,9 +2,12 @@ import asyncio
 import json
 import os
 import pickle
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
@@ -12,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from src.data.base import VolumeSemantics
+from src.data.lse import LSEDataProvider
 from src.data.sessions import get_session_close_dt, is_regular_session, to_new_york
 from src.decision.base import Action, DecisionContext, RiskGuard
 from src.decision.jev import JevDecisionProvider
@@ -46,6 +50,7 @@ platt_cal: Optional[ProbabilityCalibrator] = None
 feature_pipeline = FeaturePipeline()
 risk_guard = RiskGuard(reject_stale=True, reject_invalid=True)
 jev_provider = JevDecisionProvider()
+lse_provider = LSEDataProvider()
 forecast_history_cache: List[Dict[str, Any]] = []
 
 
@@ -53,6 +58,38 @@ def load_resources():
     global candles_cache, lgb_model, interval_cal, platt_cal, forecast_history_cache
     if DATA_PATH.exists() and candles_cache is None:
         candles_cache = pd.read_parquet(DATA_PATH)
+
+    # Fetch latest candles from LSE if provider is available
+    if lse_provider.is_available():
+        try:
+            lse_candles = lse_provider.get_historical_candles(limit=25)
+            if lse_candles:
+                rows = []
+                for c in lse_candles:
+                    rows.append(
+                        {
+                            "timestamp": c.timestamp,
+                            "open": c.open,
+                            "high": c.high,
+                            "low": c.low,
+                            "close": c.close,
+                            "volume": c.volume,
+                            "provider_symbol": c.provider_symbol,
+                            "source": "lse",
+                        }
+                    )
+                df_lse = pd.DataFrame(rows)
+                if candles_cache is not None and not candles_cache.empty:
+                    last_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
+                    df_lse["timestamp_dt"] = pd.to_datetime(df_lse["timestamp"], utc=True)
+                    new_rows = df_lse[df_lse["timestamp_dt"] > last_ts].drop(columns=["timestamp_dt"])
+                    if not new_rows.empty:
+                        candles_cache = pd.concat([candles_cache, new_rows], ignore_index=True)
+                else:
+                    candles_cache = df_lse
+        except Exception:
+            pass
+
     if MODEL_PATH.exists() and lgb_model is None:
         lgb_model = LightGBMBenchmark.load(str(MODEL_PATH))
     if INTERVAL_PATH.exists() and interval_cal is None:
@@ -197,12 +234,17 @@ def get_latest_market():
 
     ts = pd.to_datetime(latest["timestamp"])
     ny_time = to_new_york(ts.to_pydatetime())
-    is_live_session = is_regular_session(ts.to_pydatetime())
+    is_live_session = is_regular_session(datetime.now(timezone.utc))
+
+    source_name = "LSE Live Feed" if latest.get("source") == "lse" else latest.get("source", "canonical")
+    freshness = "realtime_lse" if latest.get("source") == "lse" else ("delayed_15m" if latest.get("source") == "yahoo_finance" else "historical_canonical")
+    if not is_live_session:
+        freshness = "weekend_closed" if ny_time.weekday() >= 5 else "market_closed"
 
     return {
         "instrument": "SPX",
         "display_name": "S&P 500 Index",
-        "provider_symbol": latest.get("provider_symbol", "^GSPC"),
+        "provider_symbol": latest.get("provider_symbol", "SPX" if latest.get("source") == "lse" else "^GSPC"),
         "latest_price": float(latest["close"]),
         "open": float(latest["open"]),
         "high": float(latest["high"]),
@@ -210,11 +252,11 @@ def get_latest_market():
         "close": float(latest["close"]),
         "change": round(change, 2),
         "pct_change": round(pct_change, 2),
-        "source": latest.get("source", "canonical"),
+        "source": source_name,
         "timestamp_utc": ts.isoformat(),
         "timestamp_ny": ny_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
         "is_regular_session": is_live_session,
-        "freshness": "delayed_15m" if latest.get("source") == "yahoo_finance" else "historical_canonical",
+        "freshness": freshness,
         "stale": False,
     }
 
