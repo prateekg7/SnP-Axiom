@@ -82,15 +82,15 @@
       "abstention_rate_pct": 94.0
     },
     "Open-Jev Strategy": {
-      "total_trades": 32,
-      "win_rate_pct": 50.0,
-      "gross_pnl": -366.33,
-      "net_pnl": -375.93,
-      "profit_factor": 0.48,
-      "max_drawdown": 406.96,
-      "avg_win": 21.96,
-      "avg_loss": 45.46,
-      "abstention_rate_pct": 98.7
+      "total_trades": 162,
+      "win_rate_pct": 49.4,
+      "gross_pnl": -191.1,
+      "net_pnl": -239.7,
+      "profit_factor": 0.66,
+      "max_drawdown": 355.1,
+      "avg_win": 5.85,
+      "avg_loss": 8.63,
+      "abstention_rate_pct": 93.5
     }
   }
 }

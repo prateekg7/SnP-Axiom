@@ -18,18 +18,30 @@ class OpenJevDecisionProvider(DecisionProvider):
     using a bidirectional encoder with parallel readout heads.
     """
 
-    def __init__(self, seed: int = 42):
+    def __init__(self, seed: int = 42, weights_path: Optional[str] = "artifacts/models/open_jev_weights.pt", min_confidence: float = 0.35, min_action_prob: float = 0.45):
         self.config = JevConfig(
             vocab_size=2048,
             d_model=64,
             n_heads=2,
             d_ff=256,
             n_state_layers=2,
-            n_readout_layers=3,
+            n_readout_layers=2,
             n_slots=6,
         )
         torch.manual_seed(seed)
-        self.model = Jev(self.config).eval()
+        self.model = Jev(self.config)
+        self.min_confidence = min_confidence
+        self.min_action_prob = min_action_prob
+
+        # Load trained weights if available
+        if weights_path and os.path.exists(weights_path):
+            try:
+                state_dict = torch.load(weights_path, map_location="cpu")
+                self.model.load_state_dict(state_dict)
+            except Exception:
+                pass
+
+        self.model.eval()
         self.fallback = SafeHoldDecisionProvider()
 
     def build_state(self, context: DecisionContext) -> Dict[str, Any]:
@@ -93,12 +105,28 @@ class OpenJevDecisionProvider(DecisionProvider):
             chosen_str = (action_ans.choice if action_ans else "HOLD").upper()
             action_enum = Action(chosen_str) if chosen_str in ("HOLD", "LONG", "SHORT") else Action.HOLD
 
-            # If Jev chose a direction but noul is unconfirmed (< 0.45), abstain safely to HOLD
-            if action_enum != Action.HOLD and noul_ans and noul_ans.noul < 0.45:
-                action_enum = Action.HOLD
-                reason_code = "OPEN_JEV_NOUL_ABSTAIN"
+            # Epistemic Confidence and Probability Gating
+            conf = float(action_ans.confidence) if action_ans else 0.0
+            probs = action_ans.probabilities if action_ans else {}
+            chosen_prob = float(probs.get(chosen_str, 0.0))
+
+            if action_enum != Action.HOLD:
+                # 1. Epistemic confidence check: low confidence signals uncertainty; abstain safely
+                if conf < self.min_confidence:
+                    action_enum = Action.HOLD
+                    reason_code = f"OPEN_JEV_LOW_CONF_ABSTAIN_{conf:.2f}"
+                # 2. Probability mass check: require clear margin
+                elif chosen_prob < self.min_action_prob:
+                    action_enum = Action.HOLD
+                    reason_code = f"OPEN_JEV_LOW_PROB_ABSTAIN_{chosen_prob:.2f}"
+                # 3. Noul actionability confirmation
+                elif noul_ans and noul_ans.noul < 0.45:
+                    action_enum = Action.HOLD
+                    reason_code = "OPEN_JEV_NOUL_ABSTAIN"
+                else:
+                    reason_code = f"OPEN_JEV_{action_enum.value}_CONF_{conf:.2f}"
             else:
-                reason_code = f"OPEN_JEV_{action_enum.value}"
+                reason_code = f"OPEN_JEV_HOLD_CONF_{conf:.2f}"
 
             return DecisionRecord(
                 decision_id=f"dec_{uuid.uuid4().hex[:12]}",

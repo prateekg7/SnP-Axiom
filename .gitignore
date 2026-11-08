@@ -39,3 +39,6 @@ skills-lock.json
 # Secrets
 .env
 .env.local
+
+# Progress documentation ignored per user request
+docs/PROJECT_PROGRESS_SUMMARY.md

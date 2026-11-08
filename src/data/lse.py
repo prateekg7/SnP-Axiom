@@ -15,10 +15,11 @@ class LSEDataProvider:
 
     def get_historical_candles(
         self,
-        symbol: str = "SPX.IDX",
+        symbol: str = "SPX",
         interval: str = "5m",
         start: Optional[datetime] = None,
         end: Optional[datetime] = None,
+        limit: int = 5000,
     ) -> List[Candle]:
         if not self.is_available():
             raise RuntimeError(
@@ -28,8 +29,16 @@ class LSEDataProvider:
         try:
             import lse
             client = lse.LSE(api_key=self.api_key)
-            market = "indices"
-            rows = client.candles(market, symbol, interval, start=start, end=end)
+            start_str = start.isoformat() if start else None
+            end_str = end.isoformat() if end else None
+            rows = client.candles(
+                symbol=symbol,
+                timeframe=interval,
+                market="indices",
+                start=start_str,
+                end=end_str,
+                limit=limit,
+            )
             candles: List[Candle] = []
             for r in rows:
                 c = Candle(
