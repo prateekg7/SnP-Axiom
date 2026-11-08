@@ -81,6 +81,17 @@
       "avg_loss": 7.85,
       "abstention_rate_pct": 94.0
     },
+    "Coupled AI + RSI/BB Strategy": {
+      "total_trades": 119,
+      "win_rate_pct": 46.2,
+      "gross_pnl": -153.87,
+      "net_pnl": -189.57,
+      "profit_factor": 0.64,
+      "max_drawdown": 289.67,
+      "avg_win": 6.2,
+      "avg_loss": 8.29,
+      "abstention_rate_pct": 95.2
+    },
     "Open-Jev Strategy": {
       "total_trades": 162,
       "win_rate_pct": 49.4,

@@ -171,6 +171,24 @@ def main():
     act_model[(r1_pred > 0.0001) & (cal_p_touch > 0.95)] = "LONG"
     act_model[r1_pred < -0.0001] = "SHORT"
 
+    # Coupled AI + Technical (RSI & Bollinger Filter)
+    from src.models.quant_analytics import coupled_ai_technical_decision
+    act_coupled = np.full(n_test, "HOLD", dtype=object)
+    rsi_vals = X_test["rsi_14"].values
+    bb_vals = X_test["bb_pband"].values
+    for i in range(n_test):
+        t_ny = raw_test["time_ny"].iloc[i]
+        if t_ny == "15:55":
+            act_coupled[i] = "HOLD"
+            continue
+        c_act, _ = coupled_ai_technical_decision(
+            expected_return_5m=float(r1_pred[i]),
+            calibrated_p_touch=float(cal_p_touch[i]),
+            rsi_14=float(rsi_vals[i]),
+            bb_pband=float(bb_vals[i]),
+        )
+        act_coupled[i] = c_act
+
     # Open-Jev Decision Strategy
     print("Evaluating Open-Jev Decision Layer over test split...")
     from src.decision.jev import OpenJevDecisionProvider
@@ -209,6 +227,7 @@ def main():
         "MACD Baseline": act_macd,
         "MA Trend Baseline": act_ma,
         "AI Model Strategy": act_model,
+        "Coupled AI + RSI/BB Strategy": act_coupled,
         "Open-Jev Strategy": act_open_jev,
     }
 
