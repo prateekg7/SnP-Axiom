@@ -147,3 +147,4 @@ def coupled_ai_technical_decision(
         return "SHORT", "COUPLED_AI_RSI_BB_SHORT"
 
     return "HOLD", "COUPLED_SIGNAL_ABSTAIN"
+

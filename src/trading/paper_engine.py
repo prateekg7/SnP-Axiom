@@ -46,16 +46,54 @@ class PaperTradingEngine:
         cost_per_side_points: float = 0.0,
         slippage_points: float = 0.0,
         max_units: float = 1.0,
+        take_profit_points: Optional[float] = None,
+        stop_loss_points: Optional[float] = None,
+        max_bars_held: Optional[int] = None,
     ):
         self.point_value = synthetic_point_value
         self.cost_per_side = cost_per_side_points
         self.slippage = slippage_points
         self.max_units = max_units
+        self.take_profit_points = take_profit_points
+        self.stop_loss_points = stop_loss_points
+        self.max_bars_held = max_bars_held
 
         self.current_position: PositionState = PositionState.FLAT
         self.active_trade: Optional[Trade] = None
+        self.active_bars_held: int = 0
         self.trades: List[Trade] = []
         self.processed_forecast_ids: set = set()
+
+    def _close_position(
+        self,
+        timestamp: datetime,
+        fill_price: float,
+        apply_slippage: bool = True,
+    ) -> Optional[Trade]:
+        if self.current_position == PositionState.FLAT or self.active_trade is None:
+            return None
+
+        slip = self.slippage if apply_slippage else 0.0
+        exit_fill = fill_price - slip if self.current_position == PositionState.LONG else fill_price + slip
+        self.active_trade.exit_time = timestamp
+        self.active_trade.exit_price = exit_fill
+        self.active_trade.is_closed = True
+
+        if self.current_position == PositionState.LONG:
+            pts = exit_fill - self.active_trade.entry_price
+        else:
+            pts = self.active_trade.entry_price - exit_fill
+
+        total_costs = 2 * (self.cost_per_side + self.slippage)
+        self.active_trade.gross_pnl = pts * self.point_value * self.active_trade.units
+        self.active_trade.net_pnl = (pts - total_costs) * self.point_value * self.active_trade.units
+
+        self.trades.append(self.active_trade)
+        closed_trade = self.active_trade
+        self.active_trade = None
+        self.current_position = PositionState.FLAT
+        self.active_bars_held = 0
+        return closed_trade
 
     def process_decision(
         self,
@@ -63,46 +101,53 @@ class PaperTradingEngine:
         timestamp: datetime,
         action: str,
         fill_price: float,
+        high: Optional[float] = None,
+        low: Optional[float] = None,
     ) -> Optional[Trade]:
         if forecast_id in self.processed_forecast_ids:
             return None
 
         self.processed_forecast_ids.add(forecast_id)
         action = action.upper()
-
-        # If action matches current position, do nothing
-        if action == self.current_position.value:
-            return None
-
         closed_trade = None
 
-        # Close existing position if reversing or moving to HOLD / FLAT
-        if self.current_position != PositionState.FLAT and self.active_trade is not None:
-            # Slippage on exit
-            exit_fill = fill_price - self.slippage if self.current_position == PositionState.LONG else fill_price + self.slippage
-            self.active_trade.exit_time = timestamp
-            self.active_trade.exit_price = exit_fill
-            self.active_trade.is_closed = True
+        # 1. Check bracket exits (Take-Profit, Stop-Loss, Max Hold Bars) on active position
+        if self.active_trade is not None and self.current_position != PositionState.FLAT:
+            self.active_bars_held += 1
+            bracket_exit_price = None
 
-            # Calculate PnL
             if self.current_position == PositionState.LONG:
-                pts = exit_fill - self.active_trade.entry_price
-            else:
-                pts = self.active_trade.entry_price - exit_fill
+                if self.take_profit_points is not None and high is not None and high >= (self.active_trade.entry_price + self.take_profit_points):
+                    bracket_exit_price = self.active_trade.entry_price + self.take_profit_points
+                elif self.stop_loss_points is not None and low is not None and low <= (self.active_trade.entry_price - self.stop_loss_points):
+                    bracket_exit_price = self.active_trade.entry_price - self.stop_loss_points
+                elif self.max_bars_held is not None and self.active_bars_held >= self.max_bars_held:
+                    bracket_exit_price = fill_price
+            elif self.current_position == PositionState.SHORT:
+                if self.take_profit_points is not None and low is not None and low <= (self.active_trade.entry_price - self.take_profit_points):
+                    bracket_exit_price = self.active_trade.entry_price - self.take_profit_points
+                elif self.stop_loss_points is not None and high is not None and high >= (self.active_trade.entry_price + self.stop_loss_points):
+                    bracket_exit_price = self.active_trade.entry_price + self.stop_loss_points
+                elif self.max_bars_held is not None and self.active_bars_held >= self.max_bars_held:
+                    bracket_exit_price = fill_price
 
-            total_costs = 2 * (self.cost_per_side + self.slippage)
-            self.active_trade.gross_pnl = pts * self.point_value * self.active_trade.units
-            self.active_trade.net_pnl = (pts - total_costs) * self.point_value * self.active_trade.units
+            if bracket_exit_price is not None:
+                closed_trade = self._close_position(timestamp, bracket_exit_price, apply_slippage=False)
+                # If target was hit, abstain from immediate re-entry this bar
+                if action == closed_trade.position.value:
+                    return closed_trade
 
-            self.trades.append(self.active_trade)
-            closed_trade = self.active_trade
-            self.active_trade = None
-            self.current_position = PositionState.FLAT
+        # 2. If action matches current active position, maintain position
+        if action == self.current_position.value:
+            return closed_trade
 
-        # Open new position if LONG or SHORT
+        # 3. If action is HOLD or opposite direction, close existing position
+        if self.current_position != PositionState.FLAT and self.active_trade is not None:
+            closed_trade = self._close_position(timestamp, fill_price, apply_slippage=True)
+
+        # 4. Open new position if action is LONG or SHORT
         if action in ["LONG", "SHORT"]:
             new_pos = PositionState.LONG if action == "LONG" else PositionState.SHORT
-            # Slippage on entry
             entry_fill = fill_price + self.slippage if new_pos == PositionState.LONG else fill_price - self.slippage
             trade_id = f"trade_{len(self.trades) + 1}_{timestamp.strftime('%Y%m%d%H%M')}"
             self.active_trade = Trade(
@@ -118,6 +163,7 @@ class PaperTradingEngine:
                 is_closed=False,
             )
             self.current_position = new_pos
+            self.active_bars_held = 0
 
         return closed_trade
 

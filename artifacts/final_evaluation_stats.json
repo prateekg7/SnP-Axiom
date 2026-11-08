@@ -102,6 +102,79 @@
       "avg_win": 5.85,
       "avg_loss": 8.63,
       "abstention_rate_pct": 93.5
+    },
+    "Coupled AI + Bracket (TP 3.0, SL 1.5)": {
+      "total_trades": 152,
+      "win_rate_pct": 57.2,
+      "gross_pnl": 163.5,
+      "net_pnl": 117.9,
+      "profit_factor": 2.01,
+      "max_drawdown": 10.8,
+      "avg_win": 2.7,
+      "avg_loss": 1.8,
+      "abstention_rate_pct": 93.9
+    }
+  },
+  "directional_confusion_matrices": {
+    "Always-UP Baseline": {
+      "TN": 0,
+      "FP": 1251,
+      "FN": 0,
+      "TP": 1233,
+      "accuracy_pct": 49.64,
+      "precision_pct": 49.64,
+      "recall_pct": 100.0,
+      "f1_score": 0.663
+    },
+    "Momentum Baseline": {
+      "TN": 615,
+      "FP": 636,
+      "FN": 618,
+      "TP": 615,
+      "accuracy_pct": 49.52,
+      "precision_pct": 49.16,
+      "recall_pct": 49.88,
+      "f1_score": 0.495
+    },
+    "RSI Baseline (<0.50)": {
+      "TN": 611,
+      "FP": 640,
+      "FN": 599,
+      "TP": 634,
+      "accuracy_pct": 50.12,
+      "precision_pct": 49.76,
+      "recall_pct": 51.42,
+      "f1_score": 0.506
+    },
+    "MACD Baseline": {
+      "TN": 666,
+      "FP": 585,
+      "FN": 682,
+      "TP": 551,
+      "accuracy_pct": 48.99,
+      "precision_pct": 48.5,
+      "recall_pct": 44.69,
+      "f1_score": 0.465
+    },
+    "MA Trend Baseline": {
+      "TN": 651,
+      "FP": 600,
+      "FN": 634,
+      "TP": 599,
+      "accuracy_pct": 50.32,
+      "precision_pct": 49.96,
+      "recall_pct": 48.58,
+      "f1_score": 0.493
+    },
+    "AI Forecaster (r1 > 0)": {
+      "TN": 610,
+      "FP": 641,
+      "FN": 582,
+      "TP": 651,
+      "accuracy_pct": 50.76,
+      "precision_pct": 50.39,
+      "recall_pct": 52.8,
+      "f1_score": 0.516
     }
   }
 }

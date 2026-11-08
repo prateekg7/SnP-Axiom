@@ -3,7 +3,7 @@ import os
 import pickle
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 import pandas as pd
 
@@ -28,22 +28,34 @@ def run_strategy_backtest(
     actions: Sequence[str],
     timestamps: pd.Series,
     prices: pd.Series,
+    highs: Optional[pd.Series] = None,
+    lows: Optional[pd.Series] = None,
     cost_per_side: float = 0.05,
     slippage: float = 0.10,
+    take_profit: Optional[float] = None,
+    stop_loss: Optional[float] = None,
+    max_bars: Optional[int] = None,
 ) -> PaperTradingEngine:
     engine = PaperTradingEngine(
         synthetic_point_value=1.0,
         cost_per_side_points=cost_per_side,
         slippage_points=slippage,
+        take_profit_points=take_profit,
+        stop_loss_points=stop_loss,
+        max_bars_held=max_bars,
     )
     n = len(actions)
     for i in range(n):
         f_id = f"fc_{timestamps.iloc[i].strftime('%Y%m%d%H%M')}"
+        h_val = float(highs.iloc[i]) if highs is not None else None
+        l_val = float(lows.iloc[i]) if lows is not None else None
         engine.process_decision(
             forecast_id=f_id,
             timestamp=timestamps.iloc[i],
             action=actions[i],
             fill_price=prices.iloc[i],
+            high=h_val,
+            low=l_val,
         )
     return engine
 
@@ -236,12 +248,61 @@ def main():
         eng = run_strategy_backtest(acts, timestamps, prices, cost_per_side=0.05, slippage=0.10)
         results[name] = summarize_engine(eng, n_test)
 
+    # Systematic Bracket Order Simulation (Take-Profit: 3.0 pts, Stop-Loss: 1.5 pts, Max 6 bars / 30m)
+    eng_bracket = run_strategy_backtest(
+        act_coupled,
+        timestamps,
+        prices,
+        highs=raw_test["high"],
+        lows=raw_test["low"],
+        cost_per_side=0.05,
+        slippage=0.10,
+        take_profit=3.0,
+        stop_loss=1.5,
+        max_bars=6,
+    )
+    results["Coupled AI + Bracket (TP 3.0, SL 1.5)"] = summarize_engine(eng_bracket, n_test)
+
     # Print summary table
     print("\n=== Strategy Comparison (Test Split, Costs & Slippage Included) ===")
-    print(f"{'Strategy':<22} | {'Trades':<6} | {'Win %':<6} | {'Gross P&L':<10} | {'Net P&L':<10} | {'Max DD':<8} | {'PF':<5}")
-    print("-" * 75)
+    print(f"{'Strategy':<36} | {'Trades':<6} | {'Win %':<6} | {'Gross P&L':<10} | {'Net P&L':<10} | {'Max DD':<8} | {'PF':<5}")
+    print("-" * 90)
     for name, r in results.items():
-        print(f"{name:<22} | {r['total_trades']:<6} | {r['win_rate_pct']:<6.1f} | {r['gross_pnl']:<10.2f} | {r['net_pnl']:<10.2f} | {r['max_drawdown']:<8.2f} | {r['profit_factor']:<5.2f}")
+        print(f"{name:<36} | {r['total_trades']:<6} | {r['win_rate_pct']:<6.1f} | {r['gross_pnl']:<10.2f} | {r['net_pnl']:<10.2f} | {r['max_drawdown']:<8.2f} | {r['profit_factor']:<5.2f}")
+
+    # Directional Confusion Matrix (Close-UP Target: r_1 > 0)
+    from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
+    y_true_dir = (y_test["r_1"].values > 0).astype(int)
+
+    dir_models = {
+        "Always-UP Baseline": np.ones_like(y_true_dir),
+        "Momentum Baseline": (X_test["log_ret_1"].values > 0).astype(int),
+        "RSI Baseline (<0.50)": (X_test["rsi_14"].values < 0.50).astype(int),
+        "MACD Baseline": (X_test["macd_diff"].values > 0).astype(int),
+        "MA Trend Baseline": (X_test["ema_21_dist"].values > 0).astype(int),
+        "AI Forecaster (r1 > 0)": (r1_pred > 0).astype(int),
+    }
+
+    cm_results = {}
+    print("\n=== 5-Minute Directional Confusion Matrix (Close-UP Target) ===")
+    print(f"Close-UP Base Rate: {np.mean(y_true_dir)*100:.2f}% (Total Bars: {len(y_true_dir)})")
+    print(f"{'Model / Baseline':<26} | {'TN':<5} | {'FP':<5} | {'FN':<5} | {'TP':<5} | {'Acc %':<6} | {'Prec %':<6} | {'Rec %':<6} | {'F1':<5}")
+    print("-" * 80)
+    for name, p_arr in dir_models.items():
+        cm = confusion_matrix(y_true_dir, p_arr, labels=[0, 1])
+        tn, fp, fn, tp = cm.ravel()
+        acc = accuracy_score(y_true_dir, p_arr)
+        prec = precision_score(y_true_dir, p_arr, zero_division=0)
+        rec = recall_score(y_true_dir, p_arr, zero_division=0)
+        f1 = f1_score(y_true_dir, p_arr, zero_division=0)
+        cm_results[name] = {
+            "TN": int(tn), "FP": int(fp), "FN": int(fn), "TP": int(tp),
+            "accuracy_pct": round(acc * 100.0, 2),
+            "precision_pct": round(prec * 100.0, 2),
+            "recall_pct": round(rec * 100.0, 2),
+            "f1_score": round(f1, 3),
+        }
+        print(f"{name:<26} | {tn:<5} | {fp:<5} | {fn:<5} | {tp:<5} | {acc*100:<6.2f} | {prec*100:<6.2f} | {rec*100:<6.2f} | {f1:<5.3f}")
 
     # 3. Simulate Full Demonstration Day
     print("\n=== Running Live Feed Demonstration Day ===")
@@ -371,6 +432,7 @@ def main():
             "conformal_empirical_coverage": round(empirical_cov, 4),
         },
         "strategy_results": results,
+        "directional_confusion_matrices": cm_results,
     }
     with open("artifacts/final_evaluation_stats.json", "w") as f:
         json.dump(eval_stats, f, indent=2)
