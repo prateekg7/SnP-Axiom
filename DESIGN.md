@@ -106,3 +106,4 @@
   - Replaced Open-Jev epistemic mentions with Risk filter and Signal confidence.
   - Replaced Platt-Brier mathematical formulas with clean financial probability descriptions.
 - Sloplint mechanical audit status: clean (0 FAIL, 0 REFLEX, 0 WARN across all source files).
+

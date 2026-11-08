@@ -835,7 +835,20 @@ button:disabled, button[aria-disabled="true"] {
 .log-cell {
   padding: var(--space-2xs) var(--space-xs);
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   color: var(--color-ink-2);
+}
+
+.col-left {
+  text-align: left;
+}
+
+.col-right {
+  text-align: right;
+}
+
+.col-center {
+  text-align: center;
 }
 
 .time-cell {
@@ -847,8 +860,12 @@ button:disabled, button[aria-disabled="true"] {
   color: var(--color-ink);
 }
 
+.pred-cell {
+  text-align: right;
+}
+
 .pred-delta {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-3xs);
   font-weight: 600;

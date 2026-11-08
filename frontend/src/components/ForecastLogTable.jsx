@@ -33,12 +33,12 @@ export default function ForecastLogTable({ history = [] }) {
         <table className="compact-log-table">
           <thead>
             <tr>
-              <th scope="col">time (et)</th>
-              <th scope="col">ref price</th>
-              <th scope="col">5m pred</th>
-              <th scope="col">target prob</th>
-              <th scope="col">action</th>
-              <th scope="col">status</th>
+              <th scope="col" className="col-left">time (et)</th>
+              <th scope="col" className="col-right">ref price</th>
+              <th scope="col" className="col-right">5m pred</th>
+              <th scope="col" className="col-right">target prob</th>
+              <th scope="col" className="col-center">action</th>
+              <th scope="col" className="col-center">status</th>
             </tr>
           </thead>
           <tbody>
@@ -56,21 +56,21 @@ export default function ForecastLogTable({ history = [] }) {
 
                 return (
                   <tr key={item.forecast_id || idx} className="log-row">
-                    <td className="log-cell time-cell">{formatTime(item.as_of)}</td>
-                    <td className="log-cell price-cell">{item.reference_price?.toFixed(2) || '--'}</td>
-                    <td className="log-cell pred-cell">
+                    <td className="log-cell time-cell col-left">{formatTime(item.as_of)}</td>
+                    <td className="log-cell price-cell col-right">{item.reference_price?.toFixed(2) || '--'}</td>
+                    <td className="log-cell pred-cell col-right">
                       <span className={`pred-delta ${isUp ? 'val-up' : 'val-down'}`}>
                         {isUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                         <span>{isUp ? '+' : ''}{delta.toFixed(2)}</span>
                       </span>
                     </td>
-                    <td className="log-cell prob-cell">{pVal}</td>
-                    <td className="log-cell action-cell">
+                    <td className="log-cell prob-cell col-right">{pVal}</td>
+                    <td className="log-cell action-cell col-center">
                       <span className={`log-action-tag action-${(item.action || 'HOLD').toLowerCase()}`}>
                         {item.action || 'HOLD'}
                       </span>
                     </td>
-                    <td className="log-cell status-cell">
+                    <td className="log-cell status-cell col-center">
                       <span className="log-status-resolved">{item.status || 'RESOLVED'}</span>
                     </td>
                   </tr>
