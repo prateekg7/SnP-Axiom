@@ -64,10 +64,51 @@ function computeBollingerBands(candles, period = 20, multiplier = 2) {
   return { upper, middle, lower };
 }
 
+function createMainSeries(chart, type, colors, theme, basePrice = 7370) {
+  if (type === 'bars') {
+    return chart.addBarSeries({
+      upColor: colors.candleUp,
+      downColor: colors.candleDown,
+      openVisible: true,
+      thinBars: false,
+    });
+  }
+  if (type === 'area') {
+    return chart.addAreaSeries({
+      topColor: theme === 'dark' ? 'rgba(41, 98, 255, 0.35)' : 'rgba(41, 98, 255, 0.20)',
+      bottomColor: theme === 'dark' ? 'rgba(41, 98, 255, 0.0)' : 'rgba(41, 98, 255, 0.01)',
+      lineColor: '#2962ff',
+      lineWidth: 2,
+      priceLineVisible: false,
+    });
+  }
+  if (type === 'baseline') {
+    return chart.addBaselineSeries({
+      baseValue: { type: 'price', price: basePrice },
+      topLineColor: colors.candleUp,
+      topFillColor1: theme === 'dark' ? 'rgba(8, 153, 129, 0.25)' : 'rgba(8, 153, 129, 0.15)',
+      topFillColor2: 'rgba(8, 153, 129, 0.0)',
+      bottomLineColor: colors.candleDown,
+      bottomFillColor1: 'rgba(242, 54, 69, 0.0)',
+      bottomFillColor2: theme === 'dark' ? 'rgba(242, 54, 69, 0.25)' : 'rgba(242, 54, 69, 0.15)',
+      lineWidth: 2,
+      priceLineVisible: false,
+    });
+  }
+  return chart.addCandlestickSeries({
+    upColor: colors.candleUp,
+    downColor: colors.candleDown,
+    borderVisible: false,
+    wickUpColor: colors.candleUp,
+    wickDownColor: colors.candleDown,
+  });
+}
+
 export default function CandlestickChart({ candles, forecast, market, theme = 'dark' }) {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
-  const candleSeriesRef = useRef(null);
+  const mainSeriesRef = useRef(null);
+  const currentViewTypeRef = useRef('candles');
   const volumeSeriesRef = useRef(null);
   const bbUpperSeriesRef = useRef(null);
   const bbMiddleSeriesRef = useRef(null);
@@ -75,7 +116,8 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
   const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
 
-  const [showPredictions, setShowPredictions] = useState(true);
+  const [chartView, setChartView] = useState('candles'); // 'candles' | 'bars' | 'area' | 'baseline'
+  const [forecastHorizon, setForecastHorizon] = useState('all'); // '30m' | '5m' | 'all' | 'off'
   const [showBB, setShowBB] = useState(true);
   const [activeTimeframe, setActiveTimeframe] = useState('5m');
   const [bbLatest, setBbLatest] = useState({ upper: 7418.55, middle: 7385.20, lower: 7352.10 });
@@ -154,16 +196,10 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       priceLineVisible: false,
     });
 
-    // Main Candlestick Series
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: colors.candleUp,
-      downColor: colors.candleDown,
-      borderVisible: false,
-      wickUpColor: colors.candleUp,
-      wickDownColor: colors.candleDown,
-    });
+    // Initial Main Price Series (Candles by default)
+    const mainSeries = createMainSeries(chart, 'candles', colors, theme);
 
-    // Forecast Trajectory Path
+    // Forecast Trajectory Path Line (for 30m horizon)
     const pathSeries = chart.addLineSeries({
       color: colors.pathColor,
       lineWidth: 2,
@@ -173,7 +209,8 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     });
 
     chartRef.current = chart;
-    candleSeriesRef.current = candleSeries;
+    mainSeriesRef.current = mainSeries;
+    currentViewTypeRef.current = 'candles';
     volumeSeriesRef.current = volumeSeries;
     bbUpperSeriesRef.current = bbUpperSeries;
     bbMiddleSeriesRef.current = bbMiddleSeries;
@@ -214,9 +251,9 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     });
   }, [theme, colors]);
 
-  // Update candles, BB, volume, and predicting lines
+  // Update chart series, view types, indicators, and predictions
   useEffect(() => {
-    if (!candleSeriesRef.current || !candles || candles.length === 0) return;
+    if (!chartRef.current || !candles || candles.length === 0) return;
 
     const formatted = [];
     const seen = new Set();
@@ -234,7 +271,34 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       }
     }
     formatted.sort((a, b) => a.time - b.time);
-    candleSeriesRef.current.setData(formatted);
+
+    // Switch main series type if requested view does not match current series
+    const basePrice = formatted.length > 0 ? formatted[0].close : 7370;
+    if (currentViewTypeRef.current !== chartView) {
+      // Clear previous price lines attached to the old series
+      priceLinesRef.current.forEach((pl) => {
+        try {
+          mainSeriesRef.current?.removePriceLine(pl);
+        } catch (e) {}
+      });
+      priceLinesRef.current = [];
+
+      if (mainSeriesRef.current) {
+        try {
+          chartRef.current.removeSeries(mainSeriesRef.current);
+        } catch (e) {}
+      }
+
+      mainSeriesRef.current = createMainSeries(chartRef.current, chartView, colors, theme, basePrice);
+      currentViewTypeRef.current = chartView;
+    }
+
+    // Set price data for the active view type
+    if (chartView === 'candles' || chartView === 'bars') {
+      mainSeriesRef.current?.setData(formatted);
+    } else {
+      mainSeriesRef.current?.setData(formatted.map((c) => ({ time: c.time, value: c.close })));
+    }
 
     // Volume bars at top
     if (volumeSeriesRef.current) {
@@ -265,17 +329,17 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       bbLowerSeriesRef.current?.setData([]);
     }
 
-    // Clear previous price line badges
+    // Reset price line references on the current main series
     priceLinesRef.current.forEach((pl) => {
       try {
-        candleSeriesRef.current?.removePriceLine(pl);
+        mainSeriesRef.current?.removePriceLine(pl);
       } catch (e) {}
     });
     priceLinesRef.current = [];
 
-    // Right-scale indicator badges matching TradingView screenshot
-    if (showBB && bbLatest.upper) {
-      const upLine = candleSeriesRef.current.createPriceLine({
+    // Right-scale Bollinger Band indicator badges
+    if (showBB && bbLatest.upper && mainSeriesRef.current) {
+      const upLine = mainSeriesRef.current.createPriceLine({
         price: bbLatest.upper,
         color: colors.bbUpper,
         lineWidth: 1,
@@ -283,7 +347,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         axisLabelVisible: true,
         title: 'BB Upper',
       });
-      const midLine = candleSeriesRef.current.createPriceLine({
+      const midLine = mainSeriesRef.current.createPriceLine({
         price: bbLatest.middle,
         color: colors.bbMiddle,
         lineWidth: 1,
@@ -291,7 +355,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         axisLabelVisible: true,
         title: 'BB SMA',
       });
-      const lowLine = candleSeriesRef.current.createPriceLine({
+      const lowLine = mainSeriesRef.current.createPriceLine({
         price: bbLatest.lower,
         color: colors.bbLower,
         lineWidth: 1,
@@ -302,54 +366,100 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       priceLinesRef.current.push(upLine, midLine, lowLine);
     }
 
-    // Predicting lines on graph
-    if (showPredictions && forecast && formatted.length > 0) {
+    // Prediction Visualizations on Graph (30m trajectory, 5m target, conformal intervals)
+    if (forecast && formatted.length > 0 && mainSeriesRef.current) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
+      const refPrice = forecast.reference_price || lastCandle.close;
 
-      if (forecast.path_30m && forecast.path_30m.length > 0) {
-        const pathData = [{ time: lastTime, value: lastCandle.close }];
-        forecast.path_30m.forEach((pt) => {
-          pathData.push({
-            time: lastTime + pt.horizon_minutes * 60,
-            value: pt.expected_close,
-          });
+      // 1. Single-step 5m target price line
+      if ((forecastHorizon === '5m' || forecastHorizon === 'all') && forecast.expected_price_next_5m) {
+        const delta5m = forecast.expected_price_next_5m - refPrice;
+        const isUp5m = delta5m >= 0;
+        const line5m = mainSeriesRef.current.createPriceLine({
+          price: forecast.expected_price_next_5m,
+          color: isUp5m ? colors.candleUp : colors.candleDown,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: true,
+          title: `5m: ${forecast.expected_price_next_5m.toFixed(2)}`,
         });
-        pathSeriesRef.current?.setData(pathData);
+        priceLinesRef.current.push(line5m);
+      }
+
+      // 2. 30m Trajectory curve & 30m Conformal bounds
+      if ((forecastHorizon === '30m' || forecastHorizon === 'all')) {
+        if (forecast.path_30m && forecast.path_30m.length > 0) {
+          const pathData = [{ time: lastTime, value: lastCandle.close }];
+          forecast.path_30m.forEach((pt) => {
+            pathData.push({
+              time: lastTime + pt.horizon_minutes * 60,
+              value: pt.expected_close,
+            });
+          });
+          pathSeriesRef.current?.setData(pathData);
+        } else {
+          pathSeriesRef.current?.setData([]);
+        }
+
+        // Conformal 90% predictive interval bounds
+        if (forecast.prediction_interval) {
+          const bandUpper = mainSeriesRef.current.createPriceLine({
+            price: forecast.prediction_interval.upper,
+            color: colors.conformalColor,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dotted,
+            axisLabelVisible: true,
+            title: '30m Env Up',
+          });
+          const bandLower = mainSeriesRef.current.createPriceLine({
+            price: forecast.prediction_interval.lower,
+            color: colors.conformalColor,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dotted,
+            axisLabelVisible: true,
+            title: '30m Env Low',
+          });
+          priceLinesRef.current.push(bandUpper, bandLower);
+        }
+
+        // 30m Projected High / Low extrema bounds
+        if (forecast.predicted_high_30m && forecast.predicted_low_30m) {
+          const highExtrema = mainSeriesRef.current.createPriceLine({
+            price: forecast.predicted_high_30m,
+            color: colors.bbUpper,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '30m High',
+          });
+          const lowExtrema = mainSeriesRef.current.createPriceLine({
+            price: forecast.predicted_low_30m,
+            color: colors.bbLower,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: false,
+            title: '30m Low',
+          });
+          priceLinesRef.current.push(highExtrema, lowExtrema);
+        }
       } else {
         pathSeriesRef.current?.setData([]);
       }
 
-      // Conformal 90% prediction bounds as clean lines on the chart without axis clutter
-      if (forecast.prediction_interval) {
-        const bandUpper = candleSeriesRef.current.createPriceLine({
-          price: forecast.prediction_interval.upper,
-          color: colors.conformalColor,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: '90% Upper',
-        });
-        const bandLower = candleSeriesRef.current.createPriceLine({
-          price: forecast.prediction_interval.lower,
-          color: colors.conformalColor,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: '90% Lower',
-        });
-        priceLinesRef.current.push(bandUpper, bandLower);
+      if (forecastHorizon === 'off') {
+        pathSeriesRef.current?.setData([]);
       }
     } else {
       pathSeriesRef.current?.setData([]);
     }
-  }, [candles, forecast, showPredictions, showBB, theme, colors, bbLatest.upper]);
+  }, [candles, forecast, chartView, forecastHorizon, showBB, theme, colors, bbLatest.upper]);
 
   const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
 
   return (
     <div className="chart-wrapper-panel">
-      {/* Top chart indicator info bar */}
+      {/* Top chart indicator and view controls bar */}
       <div className="chart-header-row">
         <div className="chart-tag-cluster">
           <div className="study-chip">
@@ -366,14 +476,79 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         </div>
 
         <div className="chart-controls-group">
-          <button
-            type="button"
-            onClick={() => setShowPredictions(!showPredictions)}
-            className={`chart-tab-toggle ${showPredictions ? 'active' : ''}`}
-            title="Toggle Forecast Trajectory and Bands"
-          >
-            <span>Forecast path</span>
-          </button>
+          {/* Chart View selector: 4 views (Candles, Bars, Area, Baseline) */}
+          <div className="chart-subgroup">
+            <span className="chart-group-label">View:</span>
+            <button
+              type="button"
+              onClick={() => setChartView('candles')}
+              className={`chart-tab-toggle ${chartView === 'candles' ? 'active' : ''}`}
+              title="Candlestick chart view"
+            >
+              <span>Candles</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartView('bars')}
+              className={`chart-tab-toggle ${chartView === 'bars' ? 'active' : ''}`}
+              title="OHLC Bars chart view"
+            >
+              <span>Bars</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartView('area')}
+              className={`chart-tab-toggle ${chartView === 'area' ? 'active' : ''}`}
+              title="Area line chart view"
+            >
+              <span>Area</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartView('baseline')}
+              className={`chart-tab-toggle ${chartView === 'baseline' ? 'active' : ''}`}
+              title="Baseline relative chart view"
+            >
+              <span>Baseline</span>
+            </button>
+          </div>
+
+          {/* Forecast Horizon selector */}
+          <div className="chart-subgroup">
+            <span className="chart-group-label">Pred:</span>
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('30m')}
+              className={`chart-tab-toggle ${forecastHorizon === '30m' ? 'active' : ''}`}
+              title="30-minute forward trajectory and envelope"
+            >
+              <span>30m path</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('5m')}
+              className={`chart-tab-toggle ${forecastHorizon === '5m' ? 'active' : ''}`}
+              title="5-minute directional target line"
+            >
+              <span>5m target</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('all')}
+              className={`chart-tab-toggle ${forecastHorizon === 'all' ? 'active' : ''}`}
+              title="Both 5m target and 30m path"
+            >
+              <span>All</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForecastHorizon('off')}
+              className={`chart-tab-toggle ${forecastHorizon === 'off' ? 'active' : ''}`}
+              title="Hide all forecast lines"
+            >
+              <span>Off</span>
+            </button>
+          </div>
 
           <button
             type="button"
@@ -381,7 +556,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
             className={`chart-tab-toggle ${showBB ? 'active' : ''}`}
             title="Toggle Bollinger Bands"
           >
-            <span>Bollinger Bands</span>
+            <span>BB 20</span>
           </button>
         </div>
       </div>

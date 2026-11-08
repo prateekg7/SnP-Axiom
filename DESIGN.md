@@ -79,10 +79,26 @@
 
 ## Charts and Data Visualization
 
-- Price chart: candlestick rendering for 5-minute bars, Bollinger bands (20 SMA with 2 standard deviation channel), 30-minute forward trajectory path, and asymmetric predictive interval bands.
+- Price chart series views:
+  - Candlesticks: standard OHLC bodies and wicks
+  - OHLC Bars: high-contrast institutional bar chart with open and close tick marks
+  - Area: continuous closing price line with translucent area gradient fill
+  - Baseline: relative price deviation above or below the session anchor
+- Prediction visualizations on chart:
+  - 30m forward trajectory: 6-step projected path line spanning five to thirty minutes ahead
+  - 30m confidence envelope: 90% asymmetric predictive interval bounds
+  - 30m extrema lines: projected low and high channel bounds
+  - 5m directional target: single-step price level marker
+  - Control modes: 30m path, 5m target, all, off
+- Predictive signals panel:
+  - 5m cycle view: directional close, calibrated touch barrier probability, drift rate, and spread threshold
+  - 30m cycle view: 30m expected close, six-horizon trajectory progression strip, 90% confidence envelope, and projected extrema
+  - Combined view: paired 5m directional vectors alongside 30m terminal destinations
+- Forecast log table:
+  - 5m log view: time, reference price, 5m expected delta, barrier probability, action, and resolution status
+  - 30m log view: time, reference price, 30m destination delta, 30m low and high range, action, and resolution status
 - Axis rendering: right-hand price scale and bottom time scale with faint grid lines.
 - Confusion matrix: 2x2 grid contrasting predicted directions against actual outcomes, with selective intensity washes on hit and miss cells.
-- Logs table: tabular log of five-minute interval predictions, confidence scores, target bounds, and simulated trade actions.
 
 ## Anti-Slop Audit Checklist
 
