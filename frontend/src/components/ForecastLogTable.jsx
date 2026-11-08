@@ -1,5 +1,4 @@
 import React from 'react';
-import { History, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 function formatTime(isoString) {
   if (!isoString) return '--:--';
@@ -22,11 +21,8 @@ export default function ForecastLogTable({ history = [] }) {
   return (
     <div className="panel-container log-panel-container">
       <div className="panel-headline">
-        <div className="headline-badge">
-          <History size={14} className="icon-history" />
-          <h2 className="headline-title">Recent forecast logs</h2>
-        </div>
-        <span className="count-chip">{history.length} records</span>
+        <h2 className="headline-title">Recent forecast logs</h2>
+        <span className="text-tag">{history.length} records</span>
       </div>
 
       <div className="table-scroll-wrapper">
@@ -58,11 +54,8 @@ export default function ForecastLogTable({ history = [] }) {
                   <tr key={item.forecast_id || idx} className="log-row">
                     <td className="log-cell time-cell col-left">{formatTime(item.as_of)}</td>
                     <td className="log-cell price-cell col-right">{item.reference_price?.toFixed(2) || '--'}</td>
-                    <td className="log-cell pred-cell col-right">
-                      <span className={`pred-delta ${isUp ? 'val-up' : 'val-down'}`}>
-                        {isUp ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                        <span>{isUp ? '+' : ''}{delta.toFixed(2)}</span>
-                      </span>
+                    <td className={`log-cell pred-cell col-right ${isUp ? 'val-up' : 'val-down'}`}>
+                      {isUp ? '+' : ''}{delta.toFixed(2)}
                     </td>
                     <td className="log-cell prob-cell col-right">{pVal}</td>
                     <td className="log-cell action-cell col-center">
@@ -83,4 +76,3 @@ export default function ForecastLogTable({ history = [] }) {
     </div>
   );
 }
-

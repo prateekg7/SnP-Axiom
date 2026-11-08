@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { DollarSign } from 'lucide-react';
 
 export default function MarketStatsPanel({ performance, stats, forecast }) {
   const [strategyTab, setStrategyTab] = useState('bracket');
@@ -46,30 +45,27 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
     <div className="panel-container market-stats-container">
       {/* Top Header & Strategy Toggle */}
       <div className="panel-headline">
-        <div className="headline-badge">
-          <DollarSign size={14} className="icon-dollar" />
-          <h2 className="headline-title">Trading performance and market regime</h2>
-        </div>
+        <h2 className="headline-title">Trading performance and market regime</h2>
 
         <div className="strategy-toggle-pills">
           <button
             type="button"
             onClick={() => setStrategyTab('bracket')}
-            className={`strategy-pill-btn ${strategyTab === 'bracket' ? 'active' : ''}`}
+            className={`strategy-tab-btn ${strategyTab === 'bracket' ? 'active' : ''}`}
           >
             bracket strategy
           </button>
           <button
             type="button"
             onClick={() => setStrategyTab('uncapped')}
-            className={`strategy-pill-btn ${strategyTab === 'uncapped' ? 'active' : ''}`}
+            className={`strategy-tab-btn ${strategyTab === 'uncapped' ? 'active' : ''}`}
           >
             uncapped baseline
           </button>
         </div>
       </div>
 
-      {/* Row 1: Net P&L Summary Hero */}
+      {/* Row 1: Net P&L Summary Flat Section */}
       <div className="stats-hero-banner">
         <div className="hero-left-metrics">
           <span className="hero-label">Paper trading net P&amp;L (held-out test period)</span>
@@ -77,7 +73,7 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
             <span className={`hero-pnl-num ${isNetPositive ? 'val-up' : 'val-down'}`}>
               {isNetPositive ? '+' : ''}{activeStats.netPnl.toFixed(2)} pts
             </span>
-            <span className={`pnl-return-pill ${isNetPositive ? 'pill-green' : 'pill-amber'}`}>
+            <span className={`text-tag ${isNetPositive ? 'val-up' : 'val-down'}`}>
               {isNetPositive ? '+1.62% capital' : 'negative carry'}
             </span>
           </div>
@@ -102,13 +98,13 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
         </div>
       </div>
 
-      {/* Row 2: Market Regime + Quant Statistics Grid */}
+      {/* Row 2: Market Regime + Quant Statistics Flat Grid */}
       <div className="stats-bottom-grid">
         {/* Market Regime Block */}
-        <div className="quant-stat-tile">
+        <div className="quant-stat-cell">
           <div className="tile-top-row">
             <span className="tile-label">Market regime</span>
-            <span className="regime-status-badge">{regimeName}</span>
+            <span className="text-tag">{regimeName}</span>
           </div>
           <div className="tile-main-row">
             <span className="quant-main-val">Mean reverting</span>
@@ -120,10 +116,10 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
         </div>
 
         {/* Black-Scholes Barrier Probability */}
-        <div className="quant-stat-tile">
+        <div className="quant-stat-cell">
           <div className="tile-top-row">
             <span className="tile-label">Barrier probability</span>
-            <span className="quant-algo-badge">Analytic</span>
+            <span className="text-tag">analytic</span>
           </div>
           <div className="tile-main-row">
             <span className="quant-main-val">{blackScholesProb}%</span>
@@ -135,10 +131,10 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
         </div>
 
         {/* Monte Carlo 30m Value-at-Risk */}
-        <div className="quant-stat-tile">
+        <div className="quant-stat-cell">
           <div className="tile-top-row">
             <span className="tile-label">Value at Risk (95%)</span>
-            <span className="quant-algo-badge">10,000 paths</span>
+            <span className="text-tag">10,000 paths</span>
           </div>
           <div className="tile-main-row">
             <span className="quant-main-val val-down">{mcVar95}%</span>
@@ -150,10 +146,10 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
         </div>
 
         {/* Conformal Calibration */}
-        <div className="quant-stat-tile">
+        <div className="quant-stat-cell">
           <div className="tile-top-row">
             <span className="tile-label">Confidence calibration</span>
-            <span className="coverage-pill">calibrated</span>
+            <span className="text-tag">calibrated</span>
           </div>
           <div className="tile-main-row">
             <span className="quant-main-val">{conformalCoverage}%</span>

@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
-import { Layers, Eye, EyeOff } from 'lucide-react';
 
 const THEME_COLORS = {
   dark: {
     bgPaper: '#000000',
-    gridColor: '#141824',
-    textColor: '#787b86',
-    borderColor: '#1e222d',
+    gridColor: '#0a0a0a',
+    textColor: '#555555',
+    borderColor: '#181818',
     candleUp: '#089981',
     candleDown: '#f23645',
     bbUpper: '#ea3943',
@@ -15,14 +14,14 @@ const THEME_COLORS = {
     bbLower: '#089981',
     pathColor: '#a855f7',
     conformalColor: '#818cf8',
-    volUp: '#08998133',
-    volDown: '#f2364533',
+    volUp: '#08998126',
+    volDown: '#f2364526',
   },
   light: {
-    bgPaper: '#ffffff',
-    gridColor: '#f0f3fa',
-    textColor: '#787b86',
-    borderColor: '#e0e3eb',
+    bgPaper: '#f7f4ed',
+    gridColor: '#ede8dd',
+    textColor: '#666055',
+    borderColor: '#ded6c5',
     candleUp: '#089981',
     candleDown: '#f23645',
     bbUpper: '#ea3943',
@@ -30,8 +29,8 @@ const THEME_COLORS = {
     bbLower: '#089981',
     pathColor: '#9333ea',
     conformalColor: '#6366f1',
-    volUp: '#08998126',
-    volDown: '#f2364526',
+    volUp: '#08998120',
+    volDown: '#f2364520',
   },
 };
 
@@ -95,7 +94,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         background: { color: colors.bgPaper },
         textColor: colors.textColor,
         fontSize: 11,
-        fontFamily: "'JetBrains Mono', 'Public Sans', sans-serif",
+        fontFamily: "'IBM Plex Mono', monospace",
       },
       grid: {
         vertLines: { color: colors.gridColor, style: LineStyle.Dotted },
@@ -303,7 +302,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       priceLinesRef.current.push(upLine, midLine, lowLine);
     }
 
-    // AI Predicting lines on graph
+    // Predicting lines on graph
     if (showPredictions && forecast && formatted.length > 0) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
@@ -321,14 +320,14 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         pathSeriesRef.current?.setData([]);
       }
 
-      // Conformal 90% prediction bounds
+      // Conformal 90% prediction bounds as clean lines on the chart without axis clutter
       if (forecast.prediction_interval) {
         const bandUpper = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.upper,
           color: colors.conformalColor,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: true,
+          axisLabelVisible: false,
           title: '90% Upper',
         });
         const bandLower = candleSeriesRef.current.createPriceLine({
@@ -336,7 +335,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
           color: colors.conformalColor,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: true,
+          axisLabelVisible: false,
           title: '90% Lower',
         });
         priceLinesRef.current.push(bandUpper, bandLower);
@@ -350,7 +349,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
 
   return (
     <div className="chart-wrapper-panel">
-      {/* Top chart indicator info bar matching screenshot */}
+      {/* Top chart indicator info bar */}
       <div className="chart-header-row">
         <div className="chart-tag-cluster">
           <div className="study-chip">
@@ -370,20 +369,18 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
           <button
             type="button"
             onClick={() => setShowPredictions(!showPredictions)}
-            className={`chart-pill-toggle ${showPredictions ? 'active' : ''}`}
+            className={`chart-tab-toggle ${showPredictions ? 'active' : ''}`}
             title="Toggle Forecast Trajectory and Bands"
           >
-            {showPredictions ? <Eye size={12} /> : <EyeOff size={12} />}
             <span>Forecast path</span>
           </button>
 
           <button
             type="button"
             onClick={() => setShowBB(!showBB)}
-            className={`chart-pill-toggle ${showBB ? 'active' : ''}`}
+            className={`chart-tab-toggle ${showBB ? 'active' : ''}`}
             title="Toggle Bollinger Bands"
           >
-            <Layers size={12} />
             <span>Bollinger Bands</span>
           </button>
         </div>

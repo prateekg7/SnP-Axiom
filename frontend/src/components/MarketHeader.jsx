@@ -1,5 +1,4 @@
 import React from 'react';
-import { Activity, ShieldCheck } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 export default function MarketHeader({ market, theme, onToggleTheme }) {
@@ -11,7 +10,6 @@ export default function MarketHeader({ market, theme, onToggleTheme }) {
   const pctChange = market?.pct_change ?? 0.03;
   const isPositive = change >= 0;
 
-  // TradingView simulator quote box (asymmetric 3 pt spread)
   const bidPrice = (latestPrice - 1.50).toFixed(2);
   const askPrice = (latestPrice + 1.50).toFixed(2);
 
@@ -19,24 +17,21 @@ export default function MarketHeader({ market, theme, onToggleTheme }) {
     <header className="market-top-bar">
       <div className="header-left">
         <div className="symbol-cluster">
-          <div className="index-circle-badge" aria-hidden="true">
-            <span>500</span>
-          </div>
           <span className="symbol-title">S&amp;P 500 Index</span>
           <span className="badge-pill">5m</span>
           <span className="badge-pill symbol-pill">SPX</span>
         </div>
 
-        {/* Bid / Ask Quote Block matching TradingView top bar */}
+        {/* Bid / Ask Quote Block */}
         <div className="quote-box">
           <div className="quote-badge quote-sell">
-            <span className="quote-price">{bidPrice}</span>
             <span className="quote-action">SELL</span>
+            <span className="quote-price">{bidPrice}</span>
           </div>
           <span className="quote-spread">3.00</span>
           <div className="quote-badge quote-buy">
-            <span className="quote-price">{askPrice}</span>
             <span className="quote-action">BUY</span>
+            <span className="quote-price">{askPrice}</span>
           </div>
         </div>
 
@@ -68,12 +63,10 @@ export default function MarketHeader({ market, theme, onToggleTheme }) {
 
       <div className="header-right">
         <div className="feed-status-pill">
-          <Activity size={13} className="feed-icon" />
           <span>{market?.source || 'LSE Live Feed'}</span>
         </div>
 
         <div className="session-status-pill">
-          <ShieldCheck size={13} className="session-icon" />
           <span>{market?.freshness === 'live' ? 'cash session' : 'market closed'}</span>
         </div>
 

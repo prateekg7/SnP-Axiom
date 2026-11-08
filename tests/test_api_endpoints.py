@@ -56,4 +56,4 @@ def test_api_performance():
 def test_frontend_root_serving():
     resp = client.get("/")
     assert resp.status_code == 200
-    assert "SPX AI Trading Indicator" in resp.text
+    assert "SPX Quantitative Terminal" in resp.text

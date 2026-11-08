@@ -1,5 +1,4 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle({ theme, onToggle }) {
   const isDark = theme === 'dark';
@@ -9,21 +8,10 @@ export default function ThemeToggle({ theme, onToggle }) {
       type="button"
       onClick={onToggle}
       className="theme-toggle-btn"
-      title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+      title={`Switch to ${isDark ? 'cream' : 'dark'} mode`}
+      aria-label={`Switch to ${isDark ? 'cream' : 'dark'} mode`}
     >
-      {isDark ? (
-        <>
-          <Sun size={15} />
-          <span>Light</span>
-        </>
-      ) : (
-        <>
-          <Moon size={15} />
-          <span>Dark</span>
-        </>
-      )}
+      <span>{isDark ? 'theme: dark' : 'theme: cream'}</span>
     </button>
   );
 }
-

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Grid } from 'lucide-react';
 
 const MATRICES = {
   'Directional Model': {
@@ -118,10 +117,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
   return (
     <div className="panel-container heatmap-container">
       <div className="panel-headline">
-        <div className="headline-badge">
-          <Grid size={14} className="icon-grid" />
-          <h2 className="headline-title">Directional accuracy matrix</h2>
-        </div>
+        <h2 className="headline-title">Directional accuracy matrix</h2>
 
         <div className="matrix-type-toggle">
           <button
@@ -151,7 +147,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
                 key={mName}
                 type="button"
                 onClick={() => setActiveModel(mName)}
-                className={`model-pill-btn ${activeModel === mName ? 'active' : ''}`}
+                className={`model-tab-btn ${activeModel === mName ? 'active' : ''}`}
               >
                 {mName}
               </button>
@@ -160,47 +156,40 @@ export default function ConfusionMatrixHeatmap({ stats }) {
         </div>
       )}
 
-      {/* Visual Heatmap 2x2 Grid */}
+      {/* Flat Visual Heatmap 2x2 Grid */}
       <div className="heatmap-visual-box">
         <div className="heatmap-table-wrap">
-          {/* Top Column Labels */}
           <div className="matrix-col-headers">
             <div className="axis-corner-label">actual \ predicted</div>
             <div className="axis-col-label">pred UP</div>
             <div className="axis-col-label">pred DOWN</div>
           </div>
 
-          {/* Row 1: Actual UP */}
           <div className="matrix-data-row">
             <div className="axis-row-label">act UP</div>
-            {/* TP Cell */}
             <div className="heatmap-cell cell-tp">
-              <div className="cell-type-tag">True Up</div>
-              <div className="cell-count-big">{current.TP}</div>
-              <div className="cell-pct-sub">{tpPct}% of test set</div>
+              <span className="cell-type-tag">True Up</span>
+              <span className="cell-count-big">{current.TP}</span>
+              <span className="cell-pct-sub">{tpPct}% of test set</span>
             </div>
-            {/* FN Cell */}
             <div className="heatmap-cell cell-fn">
-              <div className="cell-type-tag">False Down</div>
-              <div className="cell-count-big">{current.FN}</div>
-              <div className="cell-pct-sub">{fnPct}% of test set</div>
+              <span className="cell-type-tag">False Down</span>
+              <span className="cell-count-big">{current.FN}</span>
+              <span className="cell-pct-sub">{fnPct}% of test set</span>
             </div>
           </div>
 
-          {/* Row 2: Actual DOWN */}
           <div className="matrix-data-row">
             <div className="axis-row-label">act DOWN</div>
-            {/* FP Cell */}
             <div className="heatmap-cell cell-fp">
-              <div className="cell-type-tag">False Up</div>
-              <div className="cell-count-big">{current.FP}</div>
-              <div className="cell-pct-sub">{fpPct}% of test set</div>
+              <span className="cell-type-tag">False Up</span>
+              <span className="cell-count-big">{current.FP}</span>
+              <span className="cell-pct-sub">{fpPct}% of test set</span>
             </div>
-            {/* TN Cell */}
             <div className="heatmap-cell cell-tn">
-              <div className="cell-type-tag">True Down</div>
-              <div className="cell-count-big">{current.TN}</div>
-              <div className="cell-pct-sub">{tnPct}% of test set</div>
+              <span className="cell-type-tag">True Down</span>
+              <span className="cell-count-big">{current.TN}</span>
+              <span className="cell-pct-sub">{tnPct}% of test set</span>
             </div>
           </div>
         </div>
@@ -208,25 +197,25 @@ export default function ConfusionMatrixHeatmap({ stats }) {
 
       {/* Metrics Summary Strip */}
       <div className="matrix-metrics-grid">
-        <div className="metric-pill-card">
+        <div className="metric-flat-cell">
           <span className="metric-card-label">accuracy</span>
           <span className="metric-card-val val-highlight">{current.accuracy.toFixed(2)}%</span>
           <span className="metric-card-sub">base: 49.64%</span>
         </div>
 
-        <div className="metric-pill-card">
+        <div className="metric-flat-cell">
           <span className="metric-card-label">precision</span>
           <span className="metric-card-val">{current.precision.toFixed(2)}%</span>
           <span className="metric-card-sub">precision rate</span>
         </div>
 
-        <div className="metric-pill-card">
+        <div className="metric-flat-cell">
           <span className="metric-card-label">recall</span>
           <span className="metric-card-val val-up">{current.recall.toFixed(1)}%</span>
           <span className="metric-card-sub">sensitivity</span>
         </div>
 
-        <div className="metric-pill-card">
+        <div className="metric-flat-cell">
           <span className="metric-card-label">f1 score</span>
           <span className="metric-card-val">{current.f1.toFixed(3)}</span>
           <span className="metric-card-sub">harmonic mean</span>
@@ -234,7 +223,7 @@ export default function ConfusionMatrixHeatmap({ stats }) {
       </div>
 
       <div className="matrix-footer-note">
-        <span className="footer-tag">{current.tag}</span>
+        <span className="text-tag">{current.tag}</span>
         <span className="footer-desc">{current.note}</span>
       </div>
     </div>
