@@ -1,97 +1,184 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
-import { ChevronDown } from 'lucide-react';
+import { Layers, Eye, EyeOff } from 'lucide-react';
 
-const CHART_THEME = {
-  bgPaper: '#161413',
-  inkMuted: '#8d8680',
-  ruleColor: '#262220',
-  candleUp: '#22c55e',
-  candleDown: '#ef4444',
-  pathAzure: '#38bdf8',
-  highUp: '#22c55e',
-  lowDown: '#ef4444',
-  bandLavender: '#c084fc',
+const THEME_COLORS = {
+  dark: {
+    bgPaper: '#000000',
+    gridColor: '#141824',
+    textColor: '#787b86',
+    borderColor: '#1e222d',
+    candleUp: '#089981',
+    candleDown: '#f23645',
+    bbUpper: '#ea3943',
+    bbMiddle: '#2962ff',
+    bbLower: '#089981',
+    pathColor: '#a855f7',
+    conformalColor: '#818cf8',
+    volUp: '#08998133',
+    volDown: '#f2364533',
+  },
+  light: {
+    bgPaper: '#ffffff',
+    gridColor: '#f0f3fa',
+    textColor: '#787b86',
+    borderColor: '#e0e3eb',
+    candleUp: '#089981',
+    candleDown: '#f23645',
+    bbUpper: '#ea3943',
+    bbMiddle: '#2962ff',
+    bbLower: '#089981',
+    pathColor: '#9333ea',
+    conformalColor: '#6366f1',
+    volUp: '#08998126',
+    volDown: '#f2364526',
+  },
 };
 
-export default function CandlestickChart({ candles, forecast, market }) {
+function computeBollingerBands(candles, period = 20, multiplier = 2) {
+  const upper = [];
+  const middle = [];
+  const lower = [];
+
+  for (let i = 0; i < candles.length; i++) {
+    if (i < period - 1) continue;
+    let sum = 0;
+    for (let k = 0; k < period; k++) {
+      sum += candles[i - k].close;
+    }
+    const sma = sum / period;
+    let sumSqDiff = 0;
+    for (let k = 0; k < period; k++) {
+      const diff = candles[i - k].close - sma;
+      sumSqDiff += diff * diff;
+    }
+    const stdDev = Math.sqrt(sumSqDiff / period);
+    const upVal = sma + multiplier * stdDev;
+    const lowVal = sma - multiplier * stdDev;
+    const time = candles[i].time;
+
+    middle.push({ time, value: parseFloat(sma.toFixed(2)) });
+    upper.push({ time, value: parseFloat(upVal.toFixed(2)) });
+    lower.push({ time, value: parseFloat(lowVal.toFixed(2)) });
+  }
+
+  return { upper, middle, lower };
+}
+
+export default function CandlestickChart({ candles, forecast, market, theme = 'dark' }) {
   const chartContainerRef = useRef(null);
-  const chartInstanceRef = useRef(null);
+  const chartRef = useRef(null);
   const candleSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
+  const bbUpperSeriesRef = useRef(null);
+  const bbMiddleSeriesRef = useRef(null);
+  const bbLowerSeriesRef = useRef(null);
   const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
 
-  const [showPath, setShowPath] = useState(true);
-  const [showExtrema, setShowExtrema] = useState(true);
-  const [showBands, setShowBands] = useState(true);
+  const [showPredictions, setShowPredictions] = useState(true);
+  const [showBB, setShowBB] = useState(true);
+  const [activeTimeframe, setActiveTimeframe] = useState('5m');
+  const [bbLatest, setBbLatest] = useState({ upper: 7418.55, middle: 7385.20, lower: 7352.10 });
 
+  const colors = THEME_COLORS[theme] || THEME_COLORS.dark;
+
+  // Initialize Lightweight Chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const containerWidth = chartContainerRef.current.clientWidth || 800;
-
-    const chart = createChart(chartContainerRef.current, {
-      width: containerWidth,
-      height: 420,
+    const container = chartContainerRef.current;
+    const chart = createChart(container, {
+      width: container.clientWidth || 800,
+      height: 480,
       layout: {
-        background: { color: CHART_THEME.bgPaper },
-        textColor: CHART_THEME.inkMuted,
-        fontSize: 12,
-        fontFamily: "'Public Sans', ui-sans-serif, sans-serif",
+        background: { color: colors.bgPaper },
+        textColor: colors.textColor,
+        fontSize: 11,
+        fontFamily: "'JetBrains Mono', 'Public Sans', sans-serif",
       },
       grid: {
-        vertLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
-        horzLines: { color: CHART_THEME.ruleColor, style: LineStyle.Dotted },
+        vertLines: { color: colors.gridColor, style: LineStyle.Dotted },
+        horzLines: { color: colors.gridColor, style: LineStyle.Dotted },
       },
       crosshair: {
-        vertLine: { color: CHART_THEME.inkMuted, width: 1, style: LineStyle.Dashed },
-        horzLine: { color: CHART_THEME.inkMuted, width: 1, style: LineStyle.Dashed },
+        vertLine: { color: colors.textColor, width: 1, style: LineStyle.Dashed },
+        horzLine: { color: colors.textColor, width: 1, style: LineStyle.Dashed },
       },
       rightPriceScale: {
-        borderColor: CHART_THEME.ruleColor,
+        borderColor: colors.borderColor,
         autoScale: true,
+        scaleMargins: {
+          top: 0.12,
+          bottom: 0.18,
+        },
       },
       timeScale: {
-        borderColor: CHART_THEME.ruleColor,
+        borderColor: colors.borderColor,
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 14,
+        rightOffset: 16,
         barSpacing: 9,
       },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: CHART_THEME.candleUp,
-      downColor: CHART_THEME.candleDown,
-      borderVisible: false,
-      wickUpColor: CHART_THEME.candleUp,
-      wickDownColor: CHART_THEME.candleDown,
-    });
-
-    // Volume histogram series at bottom 20%
+    // Volume overlay at top
     const volumeSeries = chart.addHistogramSeries({
-      color: '#262220',
+      color: colors.textColor,
       priceFormat: { type: 'volume' },
-      priceScaleId: 'volumeOverlay',
+      priceScaleId: 'volumeTop',
     });
-    chart.priceScale('volumeOverlay').applyOptions({
+    chart.priceScale('volumeTop').applyOptions({
       scaleMargins: {
-        top: 0.82,
-        bottom: 0,
+        top: 0.02,
+        bottom: 0.82,
       },
     });
 
-    const pathSeries = chart.addLineSeries({
-      color: CHART_THEME.pathAzure,
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      title: '30m trajectory',
+    // Bollinger Band Lines
+    const bbUpperSeries = chart.addLineSeries({
+      color: colors.bbUpper,
+      lineWidth: 1,
+      title: 'BB Upper',
+      priceLineVisible: false,
+    });
+    const bbMiddleSeries = chart.addLineSeries({
+      color: colors.bbMiddle,
+      lineWidth: 1,
+      title: 'BB 20 SMA',
+      priceLineVisible: false,
+    });
+    const bbLowerSeries = chart.addLineSeries({
+      color: colors.bbLower,
+      lineWidth: 1,
+      title: 'BB Lower',
+      priceLineVisible: false,
     });
 
-    chartInstanceRef.current = chart;
+    // Main Candlestick Series
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: colors.candleUp,
+      downColor: colors.candleDown,
+      borderVisible: false,
+      wickUpColor: colors.candleUp,
+      wickDownColor: colors.candleDown,
+    });
+
+    // AI Prediction Trajectory Path
+    const pathSeries = chart.addLineSeries({
+      color: colors.pathColor,
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: 'AI 30m Trajectory',
+      priceLineVisible: false,
+    });
+
+    chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
     volumeSeriesRef.current = volumeSeries;
+    bbUpperSeriesRef.current = bbUpperSeries;
+    bbMiddleSeriesRef.current = bbMiddleSeries;
+    bbLowerSeriesRef.current = bbLowerSeries;
     pathSeriesRef.current = pathSeries;
 
     const handleResize = () => {
@@ -107,7 +194,28 @@ export default function CandlestickChart({ candles, forecast, market }) {
     };
   }, []);
 
-  // Update candle data and overlays
+  // Update theme colors when mode toggles
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({
+      layout: {
+        background: { color: colors.bgPaper },
+        textColor: colors.textColor,
+      },
+      grid: {
+        vertLines: { color: colors.gridColor },
+        horzLines: { color: colors.gridColor },
+      },
+      rightPriceScale: {
+        borderColor: colors.borderColor,
+      },
+      timeScale: {
+        borderColor: colors.borderColor,
+      },
+    });
+  }, [theme, colors]);
+
+  // Update candles, BB, volume, and predicting lines
   useEffect(() => {
     if (!candleSeriesRef.current || !candles || candles.length === 0) return;
 
@@ -122,37 +230,85 @@ export default function CandlestickChart({ candles, forecast, market }) {
           high: c.high,
           low: c.low,
           close: c.close,
-          volume: c.volume || 1000000,
+          volume: c.volume || 1500000,
         });
       }
     }
     formatted.sort((a, b) => a.time - b.time);
     candleSeriesRef.current.setData(formatted);
 
-    // Set volume bars with subtle green/red fill
+    // Volume bars at top
     if (volumeSeriesRef.current) {
-      const volumeData = formatted.map((c) => ({
+      const volData = formatted.map((c) => ({
         time: c.time,
         value: c.volume,
-        color: c.close >= c.open ? '#22c55e33' : '#ef444433',
+        color: c.close >= c.open ? colors.volUp : colors.volDown,
       }));
-      volumeSeriesRef.current.setData(volumeData);
+      volumeSeriesRef.current.setData(volData);
     }
 
-    // Clear old price lines
+    // Bollinger Bands
+    if (showBB && formatted.length >= 20) {
+      const { upper, middle, lower } = computeBollingerBands(formatted, 20, 2);
+      bbUpperSeriesRef.current?.setData(upper);
+      bbMiddleSeriesRef.current?.setData(middle);
+      bbLowerSeriesRef.current?.setData(lower);
+
+      if (upper.length > 0) {
+        const lastUpper = upper[upper.length - 1].value;
+        const lastMiddle = middle[middle.length - 1].value;
+        const lastLower = lower[lower.length - 1].value;
+        setBbLatest({ upper: lastUpper, middle: lastMiddle, lower: lastLower });
+      }
+    } else {
+      bbUpperSeriesRef.current?.setData([]);
+      bbMiddleSeriesRef.current?.setData([]);
+      bbLowerSeriesRef.current?.setData([]);
+    }
+
+    // Clear previous price line badges
     priceLinesRef.current.forEach((pl) => {
       try {
-        candleSeriesRef.current.removePriceLine(pl);
+        candleSeriesRef.current?.removePriceLine(pl);
       } catch (e) {}
     });
     priceLinesRef.current = [];
 
-    // Add forecast trajectory path
-    if (forecast && formatted.length > 0) {
+    // Right-scale indicator badges matching TradingView screenshot
+    if (showBB && bbLatest.upper) {
+      const upLine = candleSeriesRef.current.createPriceLine({
+        price: bbLatest.upper,
+        color: colors.bbUpper,
+        lineWidth: 1,
+        lineStyle: LineStyle.Solid,
+        axisLabelVisible: true,
+        title: 'BB Upper',
+      });
+      const midLine = candleSeriesRef.current.createPriceLine({
+        price: bbLatest.middle,
+        color: colors.bbMiddle,
+        lineWidth: 1,
+        lineStyle: LineStyle.Solid,
+        axisLabelVisible: true,
+        title: 'BB SMA',
+      });
+      const lowLine = candleSeriesRef.current.createPriceLine({
+        price: bbLatest.lower,
+        color: colors.bbLower,
+        lineWidth: 1,
+        lineStyle: LineStyle.Solid,
+        axisLabelVisible: true,
+        title: 'BB Lower',
+      });
+      priceLinesRef.current.push(upLine, midLine, lowLine);
+    }
+
+    // AI Predicting lines on graph
+    if (showPredictions && forecast && formatted.length > 0) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
 
-      if (showPath && forecast.path_30m && forecast.path_30m.length > 0) {
+      if (forecast.path_30m && forecast.path_30m.length > 0) {
         const pathData = [{ time: lastTime, value: lastCandle.close }];
         forecast.path_30m.forEach((pt) => {
           pathData.push({
@@ -165,104 +321,97 @@ export default function CandlestickChart({ candles, forecast, market }) {
         pathSeriesRef.current?.setData([]);
       }
 
-      if (showExtrema && forecast.predicted_high_30m) {
-        const highLine = candleSeriesRef.current.createPriceLine({
-          price: forecast.predicted_high_30m,
-          color: CHART_THEME.highUp,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: '30m high',
-        });
-        priceLinesRef.current.push(highLine);
-      }
-
-      if (showExtrema && forecast.predicted_low_30m) {
-        const lowLine = candleSeriesRef.current.createPriceLine({
-          price: forecast.predicted_low_30m,
-          color: CHART_THEME.lowDown,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: '30m low',
-        });
-        priceLinesRef.current.push(lowLine);
-      }
-
-      if (showBands && forecast.prediction_interval) {
-        const upper = candleSeriesRef.current.createPriceLine({
+      // Conformal 90% prediction bounds
+      if (forecast.prediction_interval) {
+        const bandUpper = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.upper,
-          color: CHART_THEME.bandLavender,
+          color: colors.conformalColor,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: '90% upper',
+          axisLabelVisible: true,
+          title: '90% Upper',
         });
-        const lower = candleSeriesRef.current.createPriceLine({
+        const bandLower = candleSeriesRef.current.createPriceLine({
           price: forecast.prediction_interval.lower,
-          color: CHART_THEME.bandLavender,
+          color: colors.conformalColor,
           lineWidth: 1,
           lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: '90% lower',
+          axisLabelVisible: true,
+          title: '90% Lower',
         });
-        priceLinesRef.current.push(upper, lower);
+        priceLinesRef.current.push(bandUpper, bandLower);
       }
+    } else {
+      pathSeriesRef.current?.setData([]);
     }
-  }, [candles, forecast, showPath, showExtrema, showBands]);
+  }, [candles, forecast, showPredictions, showBB, theme, colors, bbLatest.upper]);
 
-  const latest = market || {};
+  const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
 
   return (
-    <div className="panel" style={{ padding: 'var(--space-md) var(--space-lg)' }}>
-      <div className="panel-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', margin: 0, textTransform: 'none' }}>
-            Performance
-          </h2>
+    <div className="chart-wrapper-panel">
+      {/* Top chart indicator info bar matching screenshot */}
+      <div className="chart-header-row">
+        <div className="chart-tag-cluster">
+          <div className="study-chip">
+            <span className="study-title">BB 20 SMA close 2</span>
+            <span className="bb-metric-tag badge-bb-upper">{bbLatest.upper.toFixed(2)}</span>
+            <span className="bb-metric-tag badge-bb-middle">{bbLatest.middle.toFixed(2)}</span>
+            <span className="bb-metric-tag badge-bb-lower">{bbLatest.lower.toFixed(2)}</span>
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', fontSize: 'var(--text-xs)' }}>
-            <span>Open: <strong style={{ color: 'var(--color-blue)', fontWeight: 500 }}>{latest.open?.toFixed(2) || '7374.82'}</strong></span>
-            <span>High: <strong style={{ color: 'var(--color-up)', fontWeight: 500 }}>{latest.high?.toFixed(2) || '7382.57'}</strong></span>
-            <span>Low: <strong style={{ color: 'var(--color-down)', fontWeight: 500 }}>{latest.low?.toFixed(2) || '7373.48'}</strong></span>
-            <span>Close: <strong style={{ color: 'var(--color-down)', fontWeight: 500 }}>{latest.latest_price?.toFixed(2) || '7374.85'}</strong></span>
+          <div className="study-chip volume-chip">
+            <span className="vol-title">Vol</span>
+            <span className="vol-val">3.41B</span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2xs)', flexWrap: 'wrap' }}>
-          <button type="button" className="pill-btn" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3xs)' }}>
-            <span>Price</span>
-            <ChevronDown size={13} />
-          </button>
-          <button type="button" className="pill-btn" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3xs)' }}>
-            <span>5 min</span>
-            <ChevronDown size={13} />
-          </button>
+        <div className="chart-controls-group">
           <button
             type="button"
-            onClick={() => setShowPath(!showPath)}
-            className={`pill-btn ${showPath ? 'active' : ''}`}
+            onClick={() => setShowPredictions(!showPredictions)}
+            className={`chart-pill-toggle ${showPredictions ? 'active' : ''}`}
+            title="Toggle AI Prediction Lines"
           >
-            30m path
+            {showPredictions ? <Eye size={12} /> : <EyeOff size={12} />}
+            <span>AI predicting lines</span>
           </button>
+
           <button
             type="button"
-            onClick={() => setShowExtrema(!showExtrema)}
-            className={`pill-btn ${showExtrema ? 'active' : ''}`}
+            onClick={() => setShowBB(!showBB)}
+            className={`chart-pill-toggle ${showBB ? 'active' : ''}`}
+            title="Toggle Bollinger Bands"
           >
-            extrema
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowBands(!showBands)}
-            className={`pill-btn ${showBands ? 'active' : ''}`}
-          >
-            90% band
+            <Layers size={12} />
+            <span>Bollinger Bands</span>
           </button>
         </div>
       </div>
 
-      <div ref={chartContainerRef} style={{ width: '100%', height: '420px', overflow: 'hidden' }} />
+      {/* Chart Canvas */}
+      <div ref={chartContainerRef} className="chart-canvas-area" />
+
+      {/* Bottom Toolbar matching TradingView */}
+      <div className="chart-bottom-bar">
+        <div className="timeframe-selector">
+          {timeframes.map((tf) => (
+            <button
+              key={tf}
+              type="button"
+              onClick={() => setActiveTimeframe(tf)}
+              className={`tf-button ${activeTimeframe === tf ? 'active' : ''}`}
+            >
+              {tf}
+            </button>
+          ))}
+        </div>
+
+        <div className="tv-branding">
+          <span className="tv-logo-mark">TradingView</span>
+          <span className="tv-clock">21:47:48 UTC</span>
+        </div>
+      </div>
     </div>
   );
 }
