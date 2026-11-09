@@ -939,6 +939,45 @@ button:disabled, button[aria-disabled="true"] {
   font-size: var(--text-xs);
 }
 
+.log-status-pending {
+  display: inline-block;
+  padding: var(--space-3xs) var(--space-2xs);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+
+.pred-eval-sub {
+  font-size: 10px;
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.actual-delta-sub {
+  font-size: 10px;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.outcome-tp,
+.outcome-tn {
+  color: var(--color-up);
+  font-weight: 600;
+}
+
+.outcome-fp,
+.outcome-fn {
+  color: var(--color-down);
+  font-weight: 600;
+}
+
+.model-tab-live {
+  border-color: var(--color-border-focus);
+}
+
 .table-empty-cell {
   padding: var(--space-md);
   text-align: center;

@@ -64,8 +64,12 @@ export default function App() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.type === 'tick' && data.market) {
-              setMarket(data.market);
+            if (data.type === 'tick') {
+              if (data.market) setMarket(data.market);
+              if (data.forecast) setForecast(data.forecast);
+              if (data.performance) setPerformance(data.performance);
+              if (data.stats) setEvaluationStats(data.stats);
+              if (Array.isArray(data.history)) setForecastHistory(data.history);
             }
           } catch (e) {
             console.error('WS parse error', e);

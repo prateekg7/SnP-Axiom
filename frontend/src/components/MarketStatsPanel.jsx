@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 
 export default function MarketStatsPanel({ performance, stats, forecast }) {
-  const [strategyTab, setStrategyTab] = useState('bracket');
+  const [strategyTab, setStrategyTab] = useState('live');
 
-  // Performance data
-  const bracketStats = {
+  // Dynamic live session metrics from PaperTradingEngine
+  const liveNetPnl = performance?.net_pnl_pts ?? 0.0;
+  const liveGrossPnl = performance?.gross_pnl_pts ?? 0.0;
+  const liveRealizedPnl = performance?.realized_pnl_pts ?? 0.0;
+  const liveUnrealizedPnl = performance?.unrealized_pnl_pts ?? 0.0;
+  const liveWinRate = performance?.win_rate_pct ?? 0.0;
+  const liveProfitFactor = performance?.profit_factor ?? 1.0;
+  const liveMaxDrawdown = performance?.max_drawdown_pts ?? 0.0;
+  const liveTotalTrades = performance?.total_trades ?? 0;
+  const liveCompletedTrades = performance?.completed_trades ?? 0;
+  const livePosition = performance?.position_state || 'FLAT';
+  const liveActiveTrade = performance?.active_trade || null;
+
+  // Held-out test period reference
+  const backtestStats = {
     netPnl: 117.90,
     grossPnl: 163.50,
     winRate: 57.2,
@@ -13,23 +26,12 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
     totalTrades: 152,
     avgWin: 2.70,
     avgLoss: 1.80,
-    name: 'Asymmetric bracket strategy',
+    name: 'Held-out test period (2,484 bars)',
   };
 
-  const rawAiStats = {
-    netPnl: -309.67,
-    grossPnl: -264.67,
-    winRate: 40.7,
-    profitFactor: 0.56,
-    maxDrawdown: 329.03,
-    totalTrades: 150,
-    avgWin: 6.37,
-    avgLoss: 7.85,
-    name: 'Uncapped hold benchmark',
-  };
-
-  const activeStats = strategyTab === 'bracket' ? bracketStats : rawAiStats;
-  const isNetPositive = activeStats.netPnl >= 0;
+  const isLive = strategyTab === 'live';
+  const activeNetPnl = isLive ? liveNetPnl : backtestStats.netPnl;
+  const isNetPositive = activeNetPnl >= 0;
 
   // Quantitative market statistics
   const blackScholesProb = 91.97;
@@ -50,17 +52,17 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
         <div className="strategy-toggle-pills">
           <button
             type="button"
-            onClick={() => setStrategyTab('bracket')}
-            className={`strategy-tab-btn ${strategyTab === 'bracket' ? 'active' : ''}`}
+            onClick={() => setStrategyTab('live')}
+            className={`strategy-tab-btn ${strategyTab === 'live' ? 'active' : ''}`}
           >
-            bracket strategy
+            live session
           </button>
           <button
             type="button"
-            onClick={() => setStrategyTab('uncapped')}
-            className={`strategy-tab-btn ${strategyTab === 'uncapped' ? 'active' : ''}`}
+            onClick={() => setStrategyTab('backtest')}
+            className={`strategy-tab-btn ${strategyTab === 'backtest' ? 'active' : ''}`}
           >
-            uncapped baseline
+            backtest baseline
           </button>
         </div>
       </div>
@@ -68,32 +70,59 @@ export default function MarketStatsPanel({ performance, stats, forecast }) {
       {/* Row 1: Net P&L Summary Flat Section */}
       <div className="stats-hero-banner">
         <div className="hero-left-metrics">
-          <span className="hero-label">Paper trading net P&amp;L (held-out test period)</span>
+          <span className="hero-label">
+            {isLive ? 'Paper trading net P&L (live session)' : 'Paper trading net P&L (held-out test period)'}
+          </span>
           <div className="hero-pnl-row">
             <span className={`hero-pnl-num ${isNetPositive ? 'val-up' : 'val-down'}`}>
-              {isNetPositive ? '+' : ''}{activeStats.netPnl.toFixed(2)} pts
+              {isNetPositive ? '+' : ''}{activeNetPnl.toFixed(2)} pts
             </span>
-            <span className={`text-tag ${isNetPositive ? 'val-up' : 'val-down'}`}>
-              {isNetPositive ? '+1.62% capital' : 'negative carry'}
-            </span>
+
+            {isLive ? (
+              livePosition === 'LONG' ? (
+                <span className="text-tag val-up">
+                  LONG @ {liveActiveTrade?.entry_price.toFixed(2)} ({liveActiveTrade?.floating_pts >= 0 ? '+' : ''}{liveActiveTrade?.floating_pts.toFixed(2)} pts float)
+                </span>
+              ) : livePosition === 'SHORT' ? (
+                <span className="text-tag val-down">
+                  SHORT @ {liveActiveTrade?.entry_price.toFixed(2)} ({liveActiveTrade?.floating_pts >= 0 ? '+' : ''}{liveActiveTrade?.floating_pts.toFixed(2)} pts float)
+                </span>
+              ) : (
+                <span className="text-tag">FLAT (awaiting signal)</span>
+              )
+            ) : (
+              <span className={`text-tag ${isNetPositive ? 'val-up' : 'val-down'}`}>
+                +1.62% capital
+              </span>
+            )}
           </div>
           <span className="hero-meta-note">
-            152 executed bracket orders (+3.0 pt target, -1.5 pt stop, 0.30 pt round-trip friction)
+            {isLive ? (
+              `${liveCompletedTrades} closed bracket orders | Realized: ${liveRealizedPnl >= 0 ? '+' : ''}${liveRealizedPnl.toFixed(2)} pts | Floating: ${liveUnrealizedPnl >= 0 ? '+' : ''}${liveUnrealizedPnl.toFixed(2)} pts | +3.0 TP / -1.5 SL`
+            ) : (
+              '152 executed bracket orders (+3.0 pt target, -1.5 pt stop, 0.30 pt round-trip friction)'
+            )}
           </span>
         </div>
 
         <div className="hero-right-stats">
           <div className="stat-pair">
             <span className="stat-pair-label">win rate</span>
-            <span className="stat-pair-val val-highlight">{activeStats.winRate.toFixed(1)}%</span>
+            <span className="stat-pair-val val-highlight">
+              {isLive ? liveWinRate.toFixed(1) : backtestStats.winRate.toFixed(1)}%
+            </span>
           </div>
           <div className="stat-pair">
             <span className="stat-pair-label">profit factor</span>
-            <span className="stat-pair-val val-highlight">{activeStats.profitFactor.toFixed(2)}</span>
+            <span className="stat-pair-val val-highlight">
+              {isLive ? liveProfitFactor.toFixed(2) : backtestStats.profitFactor.toFixed(2)}
+            </span>
           </div>
           <div className="stat-pair">
             <span className="stat-pair-label">max drawdown</span>
-            <span className="stat-pair-val val-down">-{activeStats.maxDrawdown.toFixed(2)} pts</span>
+            <span className="stat-pair-val val-down">
+              -{isLive ? liveMaxDrawdown.toFixed(2) : backtestStats.maxDrawdown.toFixed(2)} pts
+            </span>
           </div>
         </div>
       </div>

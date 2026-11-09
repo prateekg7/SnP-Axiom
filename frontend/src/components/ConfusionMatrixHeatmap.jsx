@@ -103,16 +103,48 @@ const TOUCH_MATRIX = {
 };
 
 export default function ConfusionMatrixHeatmap({ stats }) {
-  const [activeModel, setActiveModel] = useState('Directional Model');
+  const [activeModel, setActiveModel] = useState('Live Session');
   const [matrixType, setMatrixType] = useState('direction');
 
-  const current = matrixType === 'direction' ? (MATRICES[activeModel] || MATRICES['Directional Model']) : TOUCH_MATRIX;
-  const total = current.total;
+  const liveMatrix = stats?.live_directional_matrix || {
+    name: 'Live Session',
+    tag: 'Dynamic Session',
+    TP: 0,
+    FN: 0,
+    FP: 0,
+    TN: 0,
+    accuracy: 0.0,
+    precision: 0.0,
+    recall: 0.0,
+    f1: 0.0,
+    total: 0,
+    note: '0 completed bars evaluated in live session (+1 every 5 min)',
+  };
 
-  const tpPct = ((current.TP / total) * 100).toFixed(1);
-  const fnPct = ((current.FN / total) * 100).toFixed(1);
-  const fpPct = ((current.FP / total) * 100).toFixed(1);
-  const tnPct = ((current.TN / total) * 100).toFixed(1);
+  const dynamicMatrices = {
+    'Live Session': liveMatrix,
+    'Directional Model (Test Set)': MATRICES['Directional Model'],
+    'RSI Benchmark': MATRICES['RSI Benchmark'],
+    'Trend Benchmark': MATRICES['Trend Benchmark'],
+    'Momentum Benchmark': MATRICES['Momentum Benchmark'],
+    'MACD Benchmark': MATRICES['MACD Benchmark'],
+    'Unconditional Baseline': MATRICES['Unconditional Baseline'],
+  };
+
+  const current = matrixType === 'direction' ? (dynamicMatrices[activeModel] || liveMatrix) : TOUCH_MATRIX;
+  const total = current.total || 0;
+  const isLive = activeModel === 'Live Session' && matrixType === 'direction';
+
+  const tpPct = total > 0 ? ((current.TP / total) * 100).toFixed(1) : '0.0';
+  const fnPct = total > 0 ? ((current.FN / total) * 100).toFixed(1) : '0.0';
+  const fpPct = total > 0 ? ((current.FP / total) * 100).toFixed(1) : '0.0';
+  const tnPct = total > 0 ? ((current.TN / total) * 100).toFixed(1) : '0.0';
+  const pctSub = isLive ? '% of session' : '% of test set';
+
+  const accuracyText = total > 0 ? (current.accuracy || 0).toFixed(2) + '%' : '0.00%';
+  const precisionText = total > 0 ? (current.precision || 0).toFixed(2) + '%' : '0.00%';
+  const recallText = total > 0 ? (current.recall || 0).toFixed(1) + '%' : '0.0%';
+  const f1Text = total > 0 ? (current.f1 || 0).toFixed(3) : '0.000';
 
   return (
     <div className="panel-container heatmap-container">
@@ -140,16 +172,16 @@ export default function ConfusionMatrixHeatmap({ stats }) {
       {/* Model Benchmark Selector */}
       {matrixType === 'direction' && (
         <div className="model-selector-row">
-          <span className="selector-label">Benchmark:</span>
+          <span className="selector-label">Selection:</span>
           <div className="model-pills-wrap">
-            {Object.keys(MATRICES).map((mName) => (
+            {Object.keys(dynamicMatrices).map((mName) => (
               <button
                 key={mName}
                 type="button"
                 onClick={() => setActiveModel(mName)}
-                className={`model-tab-btn ${activeModel === mName ? 'active' : ''}`}
+                className={`model-tab-btn ${activeModel === mName ? 'active' : ''} ${mName === 'Live Session' ? 'model-tab-live' : ''}`}
               >
-                {mName}
+                {mName === 'Live Session' ? 'Live Session (Dynamic)' : mName}
               </button>
             ))}
           </div>
@@ -170,12 +202,12 @@ export default function ConfusionMatrixHeatmap({ stats }) {
             <div className="heatmap-cell cell-tp">
               <span className="cell-type-tag">True Up</span>
               <span className="cell-count-big">{current.TP}</span>
-              <span className="cell-pct-sub">{tpPct}% of test set</span>
+              <span className="cell-pct-sub">{tpPct}{pctSub}</span>
             </div>
             <div className="heatmap-cell cell-fn">
               <span className="cell-type-tag">False Down</span>
               <span className="cell-count-big">{current.FN}</span>
-              <span className="cell-pct-sub">{fnPct}% of test set</span>
+              <span className="cell-pct-sub">{fnPct}{pctSub}</span>
             </div>
           </div>
 
@@ -184,12 +216,12 @@ export default function ConfusionMatrixHeatmap({ stats }) {
             <div className="heatmap-cell cell-fp">
               <span className="cell-type-tag">False Up</span>
               <span className="cell-count-big">{current.FP}</span>
-              <span className="cell-pct-sub">{fpPct}% of test set</span>
+              <span className="cell-pct-sub">{fpPct}{pctSub}</span>
             </div>
             <div className="heatmap-cell cell-tn">
               <span className="cell-type-tag">True Down</span>
               <span className="cell-count-big">{current.TN}</span>
-              <span className="cell-pct-sub">{tnPct}% of test set</span>
+              <span className="cell-pct-sub">{tnPct}{pctSub}</span>
             </div>
           </div>
         </div>
@@ -199,32 +231,36 @@ export default function ConfusionMatrixHeatmap({ stats }) {
       <div className="matrix-metrics-grid">
         <div className="metric-flat-cell">
           <span className="metric-card-label">accuracy</span>
-          <span className="metric-card-val val-highlight">{current.accuracy.toFixed(2)}%</span>
-          <span className="metric-card-sub">base: 49.64%</span>
+          <span className="metric-card-val val-highlight">{accuracyText}</span>
+          <span className="metric-card-sub">{isLive ? `${total} bars total` : 'base: 49.64%'}</span>
         </div>
 
         <div className="metric-flat-cell">
           <span className="metric-card-label">precision</span>
-          <span className="metric-card-val">{current.precision.toFixed(2)}%</span>
+          <span className="metric-card-val">{precisionText}</span>
           <span className="metric-card-sub">precision rate</span>
         </div>
 
         <div className="metric-flat-cell">
           <span className="metric-card-label">recall</span>
-          <span className="metric-card-val val-up">{current.recall.toFixed(1)}%</span>
+          <span className="metric-card-val val-up">{recallText}</span>
           <span className="metric-card-sub">sensitivity</span>
         </div>
 
         <div className="metric-flat-cell">
           <span className="metric-card-label">f1 score</span>
-          <span className="metric-card-val">{current.f1.toFixed(3)}</span>
+          <span className="metric-card-val">{f1Text}</span>
           <span className="metric-card-sub">harmonic mean</span>
         </div>
       </div>
 
       <div className="matrix-footer-note">
         <span className="text-tag">{current.tag}</span>
-        <span className="footer-desc">{current.note}</span>
+        <span className="footer-desc">
+          {isLive
+            ? `${total} completed 5m bars evaluated in live session (+1 every 5 min)`
+            : current.note}
+        </span>
       </div>
     </div>
   );

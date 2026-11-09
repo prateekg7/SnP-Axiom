@@ -17,7 +17,7 @@ function formatTime(isoString) {
 
 export default function ForecastLogTable({ history = [] }) {
   const [horizonView, setHorizonView] = useState('5m'); // '5m' | '30m'
-  const records = history.slice(0, 15);
+  const records = [...(history || [])].reverse().slice(0, 25);
 
   return (
     <div className="panel-container log-panel-container">
@@ -50,7 +50,7 @@ export default function ForecastLogTable({ history = [] }) {
               <tr>
                 <th scope="col" className="col-left">time (et)</th>
                 <th scope="col" className="col-right">ref price</th>
-                <th scope="col" className="col-right">5m pred</th>
+                <th scope="col" className="col-right">5m pred (act)</th>
                 <th scope="col" className="col-right">target prob</th>
                 <th scope="col" className="col-center">action</th>
                 <th scope="col" className="col-center">status</th>
@@ -76,6 +76,7 @@ export default function ForecastLogTable({ history = [] }) {
             ) : (
               records.map((item, idx) => {
                 const ref = item.reference_price || 7376.86;
+                const isPending = item.status === 'PENDING';
 
                 // 5m values
                 const isUp5m = (item.expected_price_next_5m || ref) >= ref;
@@ -91,14 +92,19 @@ export default function ForecastLogTable({ history = [] }) {
                 const high30m = item.predicted_high_30m ? item.predicted_high_30m.toFixed(1) : '--';
 
                 return (
-                  <tr key={item.forecast_id || idx} className="log-row">
+                  <tr key={item.forecast_id || idx} className={`log-row ${isPending ? 'row-pending' : ''}`}>
                     <td className="log-cell time-cell col-left">{formatTime(item.as_of)}</td>
                     <td className="log-cell price-cell col-right">{ref.toFixed(2)}</td>
 
                     {horizonView === '5m' ? (
                       <>
                         <td className={`log-cell pred-cell col-right ${isUp5m ? 'val-up' : 'val-down'}`}>
-                          {isUp5m ? '+' : ''}{delta5m.toFixed(2)}
+                          <span>{isUp5m ? '+' : ''}{delta5m.toFixed(2)}</span>
+                          {isPending ? (
+                            <span className="pred-eval-sub"> (eval)</span>
+                          ) : item.actual_delta !== undefined ? (
+                            <span className="actual-delta-sub"> ({item.actual_delta >= 0 ? '+' : ''}{item.actual_delta.toFixed(2)})</span>
+                          ) : null}
                         </td>
                         <td className="log-cell prob-cell col-right">{pVal}</td>
                       </>
@@ -121,7 +127,13 @@ export default function ForecastLogTable({ history = [] }) {
                       </span>
                     </td>
                     <td className="log-cell status-cell col-center">
-                      <span className="log-status-resolved">{item.status || 'RESOLVED'}</span>
+                      {isPending ? (
+                        <span className="log-status-pending">PENDING</span>
+                      ) : (
+                        <span className={`log-status-resolved outcome-${(item.outcome || 'resolved').toLowerCase()}`}>
+                          {item.outcome || 'RESOLVED'}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
