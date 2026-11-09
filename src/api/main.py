@@ -92,37 +92,7 @@ def load_resources():
     global candles_cache, lgb_model, interval_cal, platt_cal, forecast_history_cache
     if DATA_PATH.exists() and candles_cache is None:
         candles_cache = pd.read_parquet(DATA_PATH)
-
-    # Fetch latest candles from LSE if provider is available
-    if lse_provider.is_available():
-        try:
-            lse_candles = lse_provider.get_historical_candles(limit=25)
-            if lse_candles:
-                rows = []
-                for c in lse_candles:
-                    rows.append(
-                        {
-                            "timestamp": c.timestamp,
-                            "open": c.open,
-                            "high": c.high,
-                            "low": c.low,
-                            "close": c.close,
-                            "volume": c.volume,
-                            "provider_symbol": c.provider_symbol,
-                            "source": "lse",
-                        }
-                    )
-                df_lse = pd.DataFrame(rows)
-                df_lse["timestamp"] = pd.to_datetime(df_lse["timestamp"], utc=True)
-                if candles_cache is not None and not candles_cache.empty:
-                    last_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
-                    new_rows = df_lse[df_lse["timestamp"] > last_ts]
-                    if not new_rows.empty:
-                        candles_cache = pd.concat([candles_cache, new_rows], ignore_index=True)
-                else:
-                    candles_cache = df_lse
-        except Exception:
-            pass
+        candles_cache["timestamp"] = pd.to_datetime(candles_cache["timestamp"], utc=True)
 
     if MODEL_PATH.exists() and lgb_model is None:
         lgb_model = LightGBMBenchmark.load(str(MODEL_PATH))
@@ -141,6 +111,83 @@ def load_resources():
                     forecast_history_cache.append(json.loads(line))
 
 
+def init_live_session():
+    """Initialize today's live session by sequentially executing all completed 5m bars since market open."""
+    global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache
+    load_resources()
+
+    # Reset live tracking state to start fresh from 0 for today's market session
+    live_directional_matrix = {
+        "name": "Live Session (Dynamic)",
+        "tag": "Dynamic Session",
+        "TP": 0,
+        "FP": 0,
+        "FN": 0,
+        "TN": 0,
+        "total": 0,
+        "accuracy_pct": 0.0,
+        "precision_pct": 0.0,
+        "recall_pct": 0.0,
+        "f1_score": 0.0,
+        "note": "0 completed bars evaluated in live session (+1 every 5 min)",
+    }
+
+    live_paper_engine = PaperTradingEngine(
+        synthetic_point_value=1.0,
+        cost_per_side_points=0.15,
+        slippage_points=0.0,
+        max_units=1.0,
+        take_profit_points=3.0,
+        stop_loss_points=1.5,
+        max_bars_held=6,
+    )
+
+    # Base candles cache contains historical data prior to today's date
+    cutoff_date = pd.to_datetime("2026-11-09 00:00:00+00:00", utc=True)
+    if DATA_PATH.exists():
+        raw_canonical = pd.read_parquet(DATA_PATH)
+        raw_canonical["timestamp"] = pd.to_datetime(raw_canonical["timestamp"], utc=True)
+        candles_cache = raw_canonical[raw_canonical["timestamp"] < cutoff_date].copy()
+
+    # Fetch today's completed 5m candles from LSE provider
+    today_candles = []
+    if lse_provider.is_available():
+        try:
+            lse_candles = lse_provider.get_historical_candles(limit=40)
+            if lse_candles:
+                for c in lse_candles:
+                    c_ts = pd.to_datetime(c.timestamp, utc=True)
+                    if c_ts >= pd.to_datetime("2026-11-09 14:00:00+00:00", utc=True):
+                        today_candles.append({
+                            "timestamp": c_ts,
+                            "open": float(c.open),
+                            "high": float(c.high),
+                            "low": float(c.low),
+                            "close": float(c.close),
+                            "volume": float(c.volume) if c.volume is not None else 0.0,
+                            "provider_symbol": c.provider_symbol,
+                            "source": "lse",
+                        })
+        except Exception as e:
+            print(f"[init_live_session] LSE fetch error: {e}")
+
+    today_candles = sorted(today_candles, key=lambda x: x["timestamp"])
+
+    if today_candles:
+        # First candle seeds the initial pending forecast
+        first_c = today_candles[0]
+        candles_cache = pd.concat([candles_cache, pd.DataFrame([first_c])], ignore_index=True)
+        pending_forecast = _generate_forecast_for_window(candles_cache, pd.Series(first_c), status="PENDING")
+
+        # Each subsequent candle resolves previous forecast, updates matrix (+1), and executes paper trading
+        for c in today_candles[1:]:
+            process_new_candle(c)
+    else:
+        if candles_cache is not None and not candles_cache.empty:
+            latest = candles_cache.iloc[-1]
+            pending_forecast = _generate_forecast_for_window(candles_cache, latest, status="PENDING")
+
+
 def append_forecast_record(record: Dict[str, Any]):
     global forecast_history_cache
     for idx, r in enumerate(forecast_history_cache):
@@ -156,16 +203,10 @@ def append_forecast_record(record: Dict[str, Any]):
 @app.on_event("startup")
 async def startup_event():
     load_resources()
-    if candles_cache is not None and len(forecast_history_cache) == 0:
-        _bootstrap_recent_forecasts(count=20)
-    
-    # Generate pending forecast for the latest available candle
-    global pending_forecast, background_loop_task
-    if candles_cache is not None and not candles_cache.empty:
-        latest = candles_cache.iloc[-1]
-        pending_forecast = _generate_forecast_for_window(candles_cache, latest, status="PENDING")
+    init_live_session()
 
     # Start live background polling loop
+    global background_loop_task
     if background_loop_task is None or background_loop_task.done():
         background_loop_task = asyncio.create_task(live_market_engine_loop())
 
@@ -241,6 +282,22 @@ def _generate_forecast_for_window(
     raw_dec = jev_provider.decide(ctx, f_id)
     final_dec = risk_guard.validate(raw_dec, ctx)
 
+    # Coupled AI + technical decision strategy for execution actions
+    from src.models.quant_analytics import coupled_ai_technical_decision
+    rsi_val = float(last_feat["rsi_14"].iloc[0]) if "rsi_14" in last_feat else 0.50
+    bb_val = float(last_feat["bb_pband"].iloc[0]) if "bb_pband" in last_feat else 0.50
+
+    coupled_action, coupled_reason = coupled_ai_technical_decision(
+        expected_return_5m=r1,
+        calibrated_p_touch=cal_p_up,
+        rsi_14=rsi_val,
+        bb_pband=bb_val,
+        min_return_drift=0.00005,
+    )
+
+    action_to_record = coupled_action if final_dec.action.value == "HOLD" and coupled_action != "HOLD" else final_dec.action.value
+    reason_to_record = coupled_reason if final_dec.action.value == "HOLD" and coupled_action != "HOLD" else final_dec.reason_code
+
     rec = {
         "forecast_id": f_id,
         "as_of": ts.isoformat(),
@@ -259,8 +316,8 @@ def _generate_forecast_for_window(
             "upper": round(upper_price, 2),
         },
         "market_regime": regime,
-        "action": final_dec.action.value,
-        "decision_reason": final_dec.reason_code,
+        "action": action_to_record,
+        "decision_reason": reason_to_record,
         "model_version": "lightgbm_v1.0",
         "data_source": "canonical_spx",
         "status": status,
@@ -361,19 +418,20 @@ def process_new_candle(candle_dict: Dict[str, Any]):
 
 
 async def live_market_engine_loop():
-    """Background worker polling LSE every 8s to catch real completed 5m bars."""
+    """Background worker polling LSE every 5s to catch real completed 5m bars."""
     while True:
         try:
-            await asyncio.sleep(8.0)
+            await asyncio.sleep(5.0)
             if lse_provider.is_available() and candles_cache is not None and not candles_cache.empty:
-                lse_candles = lse_provider.get_historical_candles(limit=5)
+                lse_candles = lse_provider.get_historical_candles(limit=10)
                 if lse_candles:
                     last_known_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
+                    new_candles = []
                     for c in lse_candles:
                         c_ts = pd.to_datetime(c.timestamp, utc=True)
                         if c_ts > last_known_ts:
-                            candle_dict = {
-                                "timestamp": c.timestamp,
+                            new_candles.append({
+                                "timestamp": c_ts,
                                 "open": float(c.open),
                                 "high": float(c.high),
                                 "low": float(c.low),
@@ -381,10 +439,11 @@ async def live_market_engine_loop():
                                 "volume": float(c.volume) if c.volume is not None else 0.0,
                                 "provider_symbol": c.provider_symbol,
                                 "source": "lse",
-                            }
-                            process_new_candle(candle_dict)
-                            last_known_ts = c_ts
-                            await broadcast_tick()
+                            })
+                    new_candles = sorted(new_candles, key=lambda x: x["timestamp"])
+                    for candle_dict in new_candles:
+                        process_new_candle(candle_dict)
+                        await broadcast_tick()
         except Exception:
             pass
 
