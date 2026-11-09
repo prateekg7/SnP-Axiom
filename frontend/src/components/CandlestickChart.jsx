@@ -170,10 +170,122 @@ function createMainSeries(chart, type, colors, theme, basePrice = 7370) {
   });
 }
 
+function createForecastSeries(chart, type, colors, theme, basePrice = 7370) {
+  if (type === 'bars') {
+    return chart.addBarSeries({
+      upColor: colors.candleUp,
+      downColor: colors.candleDown,
+      openVisible: true,
+      thinBars: false,
+      title: '30m Proj Bars',
+      priceLineVisible: false,
+    });
+  }
+  if (type === 'area') {
+    return chart.addAreaSeries({
+      topColor: theme === 'dark' ? 'rgba(168, 85, 247, 0.35)' : 'rgba(147, 51, 234, 0.22)',
+      bottomColor: theme === 'dark' ? 'rgba(168, 85, 247, 0.0)' : 'rgba(147, 51, 234, 0.01)',
+      lineColor: colors.pathColor,
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: '30m Proj Area',
+      priceLineVisible: false,
+    });
+  }
+  if (type === 'baseline') {
+    return chart.addBaselineSeries({
+      baseValue: { type: 'price', price: basePrice },
+      topLineColor: colors.candleUp,
+      topFillColor1: theme === 'dark' ? 'rgba(8, 153, 129, 0.30)' : 'rgba(8, 153, 129, 0.18)',
+      topFillColor2: 'rgba(8, 153, 129, 0.0)',
+      bottomLineColor: colors.candleDown,
+      bottomFillColor1: 'rgba(242, 54, 69, 0.0)',
+      bottomFillColor2: theme === 'dark' ? 'rgba(242, 54, 69, 0.30)' : 'rgba(242, 54, 69, 0.18)',
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: '30m Proj Baseline',
+      priceLineVisible: false,
+    });
+  }
+  // Default: 'candles'
+  return chart.addCandlestickSeries({
+    upColor: theme === 'dark' ? 'rgba(8, 153, 129, 0.70)' : 'rgba(8, 153, 129, 0.65)',
+    downColor: theme === 'dark' ? 'rgba(242, 54, 69, 0.70)' : 'rgba(242, 54, 69, 0.65)',
+    borderVisible: true,
+    borderUpColor: colors.candleUp,
+    borderDownColor: colors.candleDown,
+    wickUpColor: colors.candleUp,
+    wickDownColor: colors.candleDown,
+    title: '30m Proj Candles',
+    priceLineVisible: false,
+  });
+}
+
+function generateForecastCandles(forecast, lastCandle) {
+  if (!forecast || !lastCandle) return { bars: [], points: [] };
+  const lastTime = lastCandle.time;
+  const refPrice = forecast.reference_price || lastCandle.close;
+
+  let steps = [];
+  if (forecast.path_30m && forecast.path_30m.length > 0) {
+    steps = forecast.path_30m;
+  } else if (forecast.expected_price_next_5m) {
+    steps = [{ horizon_minutes: 5, expected_close: forecast.expected_price_next_5m }];
+  }
+
+  if (steps.length === 0) return { bars: [], points: [] };
+
+  let prevClose = lastCandle.close;
+  const bars = [];
+  const points = [{ time: lastTime, value: lastCandle.close }];
+
+  steps.forEach((pt) => {
+    const stepTime = lastTime + pt.horizon_minutes * 60;
+    const open = prevClose;
+    const close = pt.expected_close;
+
+    const bodyRange = Math.abs(close - open);
+    const volWick = forecast.volatility_30m
+      ? refPrice * (forecast.volatility_30m / Math.sqrt(6)) * 0.45
+      : 0.40;
+    const wickSpread = Math.max(bodyRange * 0.30, volWick, 0.35);
+
+    let high = +(Math.max(open, close) + wickSpread).toFixed(2);
+    let low = +(Math.min(open, close) - wickSpread).toFixed(2);
+
+    if (forecast.predicted_high_30m) {
+      high = Math.min(high, forecast.predicted_high_30m);
+    }
+    if (forecast.predicted_low_30m) {
+      low = Math.max(low, forecast.predicted_low_30m);
+    }
+    high = Math.max(high, open, close);
+    low = Math.min(low, open, close);
+
+    bars.push({
+      time: stepTime,
+      open,
+      high,
+      low,
+      close,
+    });
+
+    points.push({
+      time: stepTime,
+      value: close,
+    });
+
+    prevClose = close;
+  });
+
+  return { bars, points };
+}
+
 export default function CandlestickChart({ candles, forecast, market, theme = 'dark' }) {
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
   const mainSeriesRef = useRef(null);
+  const forecastSeriesRef = useRef(null);
   const currentViewTypeRef = useRef('candles');
   const volumeSeriesRef = useRef(null);
 
@@ -186,7 +298,6 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
   const ema50SeriesRef = useRef(null);
   const vwapSeriesRef = useRef(null);
 
-  const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
 
   // States
@@ -314,18 +425,12 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
 
     // Initial Main Price Series (Candles by default)
     const mainSeries = createMainSeries(chart, 'candles', colors, theme);
-
-    // Forecast Trajectory Path Line (for 30m horizon)
-    const pathSeries = chart.addLineSeries({
-      color: colors.pathColor,
-      lineWidth: 2,
-      lineStyle: LineStyle.Dashed,
-      title: '30m Trajectory',
-      priceLineVisible: false,
-    });
+    // Initial 30m Forecast Series (matching view type)
+    const forecastSeries = createForecastSeries(chart, 'candles', colors, theme);
 
     chartRef.current = chart;
     mainSeriesRef.current = mainSeries;
+    forecastSeriesRef.current = forecastSeries;
     currentViewTypeRef.current = 'candles';
     volumeSeriesRef.current = volumeSeries;
     bbUpperSeriesRef.current = bbUpperSeries;
@@ -335,7 +440,6 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     ema21SeriesRef.current = ema21Series;
     ema50SeriesRef.current = ema50Series;
     vwapSeriesRef.current = vwapSeries;
-    pathSeriesRef.current = pathSeries;
 
     // Native ResizeObserver for reliable container-based responsiveness
     let resizeObserver = null;
@@ -451,8 +555,14 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
           chartRef.current.removeSeries(mainSeriesRef.current);
         } catch (e) {}
       }
+      if (forecastSeriesRef.current) {
+        try {
+          chartRef.current.removeSeries(forecastSeriesRef.current);
+        } catch (e) {}
+      }
 
       mainSeriesRef.current = createMainSeries(chartRef.current, chartView, colors, theme, basePrice);
+      forecastSeriesRef.current = createForecastSeries(chartRef.current, chartView, colors, theme, basePrice);
       currentViewTypeRef.current = chartView;
     }
 
@@ -630,19 +740,17 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         priceLinesRef.current.push(line5m);
       }
 
-      // 2. 30m Trajectory curve & 30m Conformal bounds
+      // 2. 30m Forward Projections (sequential 5m steps) matching selected view type
       if (forecastHorizon === '30m' || forecastHorizon === 'all') {
-        if (forecast.path_30m && forecast.path_30m.length > 0) {
-          const pathData = [{ time: lastTime, value: lastCandle.close }];
-          forecast.path_30m.forEach((pt) => {
-            pathData.push({
-              time: lastTime + pt.horizon_minutes * 60,
-              value: pt.expected_close,
-            });
-          });
-          pathSeriesRef.current?.setData(pathData);
+        const { bars, points } = generateForecastCandles(forecast, lastCandle);
+        if (bars.length > 0) {
+          if (chartView === 'candles' || chartView === 'bars') {
+            forecastSeriesRef.current?.setData(bars);
+          } else {
+            forecastSeriesRef.current?.setData(points);
+          }
         } else {
-          pathSeriesRef.current?.setData([]);
+          forecastSeriesRef.current?.setData([]);
         }
 
         // Conformal 90% predictive interval bounds
@@ -687,14 +795,14 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
           priceLinesRef.current.push(highExtrema, lowExtrema);
         }
       } else {
-        pathSeriesRef.current?.setData([]);
+        forecastSeriesRef.current?.setData([]);
       }
 
       if (forecastHorizon === 'off') {
-        pathSeriesRef.current?.setData([]);
+        forecastSeriesRef.current?.setData([]);
       }
     } else {
-      pathSeriesRef.current?.setData([]);
+      forecastSeriesRef.current?.setData([]);
     }
   }, [candles, forecast, chartView, forecastHorizon, indicators, theme, colors]);
 
@@ -802,7 +910,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
                 <span className="shadcn-trigger-label">Prediction</span>
                 <span className="shadcn-trigger-value">
                   {forecastHorizon === 'all' && 'All (30m + 5m)'}
-                  {forecastHorizon === '30m' && '30m Trajectory'}
+                  {forecastHorizon === '30m' && '30m Horizon'}
                   {forecastHorizon === '5m' && '5m Target'}
                   {forecastHorizon === 'off' && 'Off'}
                 </span>
@@ -822,7 +930,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
                 onClick={() => setForecastHorizon('30m')}
                 className={forecastHorizon === '30m' ? 'active' : ''}
               >
-                <span>30m Trajectory & Envelope</span>
+                <span>30m Horizon (6 x 5m Steps) &amp; Envelope</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setForecastHorizon('5m')}

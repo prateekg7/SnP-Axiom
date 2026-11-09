@@ -103,11 +103,11 @@
   - 1M maps to 1,560 bars covering one trading month
   - All fits the complete historical range
 - Prediction visualizations on chart:
-  - 30m forward trajectory: 6-step projected path line spanning five to thirty minutes ahead
+  - 30m forward projection: six sequential 5-minute bars rendered dynamically according to the selected chart view (projected candlesticks with translucent bodies and solid borders, OHLC bars, translucent area gradient, or baseline deviation)
   - 30m confidence envelope: 90% asymmetric predictive interval bounds
   - 30m extrema lines: projected low and high channel bounds
   - 5m directional target: single-step price level marker
-  - Control modes: 30m path, 5m target, all, off
+  - Control modes: 30m horizon, 5m target, all, off
 - Predictive signals panel:
   - 5m cycle view: directional close, calibrated touch barrier probability, drift rate, and spread threshold
   - 30m cycle view: 30m expected close, six-horizon trajectory progression strip, 90% confidence envelope, and projected extrema
