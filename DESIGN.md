@@ -25,8 +25,9 @@
 
 ## Typography
 
-- UI and display font: IBM Plex Sans (weights 400, 500, 600, 700)
-- Numerals, prices, deltas, and tables: IBM Plex Mono (weights 400, 500, 600)
+- Primary interface and display font: Geist (weights 300 to 800)
+- Numerals, prices, deltas, chart labels, and tables: Geist Mono (weights 300 to 700)
+- Shadcn menu controls: isolated to `--font-shadcn` (IBM Plex Sans with system fallbacks)
 - Numeric formatting: all prices, point spreads, percentages, and metrics use tabular numerals (`font-variant-numeric: tabular-nums`) with right alignment.
 - Scale:
   - text-xs: 0.75rem (12px), line-height 1.35 (labels, status chips, table cells)

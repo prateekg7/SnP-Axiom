@@ -226,7 +226,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         background: { color: colors.bgPaper },
         textColor: colors.textColor,
         fontSize: 11,
-        fontFamily: "'IBM Plex Mono', monospace",
+        fontFamily: "'Geist Mono', monospace",
       },
       grid: {
         vertLines: { color: colors.gridColor, style: LineStyle.Dotted },
