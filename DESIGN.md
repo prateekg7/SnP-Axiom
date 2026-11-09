@@ -18,6 +18,7 @@
 ## Architecture and Layout
 
 - Layout structure: full-width workstation with two rows:
+  - Header: minimal navigation strip with instrument title on the left and theme toggle with Sun or Moon icon on the right
   - Upper row: Candlestick chart (67% width) alongside predictive signals table and forecast log table (33% width)
   - Lower row: Directional accuracy matrix (50% width) alongside paper trading performance and regime statistics (50% width)
 - Flat surface structure: eliminates nested cards within cards. Functional containers sit directly on the primary canvas. Metrics and signals appear inside flat data rows separated by 1px hairline dividers.
@@ -55,19 +56,19 @@
   - Neutral / Hold: oklch(80% 0.160 75) (#f59e0b)
   - Chart grid lines: #0a0a0a (faint and unobtrusive)
 
-- Light theme (cream paper):
-  - Canvas background: oklch(96% 0.018 85) (#f7f4ed)
-  - Surface panels: oklch(99% 0.008 85) (#fdfbf7)
-  - Elevated tiles: oklch(94% 0.020 85) (#f2ede2)
-  - Interactive hover: oklch(91% 0.022 85) (#e8e0d0)
-  - Primary ink: oklch(18% 0.020 70) (#1c1917)
-  - Secondary ink: oklch(34% 0.020 70) (#44403c)
-  - Muted labels: oklch(52% 0.020 70) (#78716c)
-  - Hairline borders: oklch(88% 0.020 85) (#ded6c3)
-  - Interactive borders: oklch(80% 0.025 85) (#cbbeaa)
-  - Upward movement: oklch(60% 0.170 155) (#047857)
-  - Downward movement: oklch(58% 0.210 25) (#dc2626)
-  - Chart grid lines: #ede8dd (barely visible warm cream grid)
+- Light theme (standard neutral light):
+  - Canvas background: oklch(97.5% 0.006 240) (#f8fafc)
+  - Surface panels: oklch(99.2% 0.005 240) (#ffffff)
+  - Elevated tiles: oklch(95% 0.006 240) (#f1f5f9)
+  - Interactive hover: oklch(91% 0.008 240) (#e2e8f0)
+  - Primary ink: oklch(14% 0.015 240) (#0f172a)
+  - Secondary ink: oklch(28% 0.015 240) (#334155)
+  - Muted labels: oklch(54% 0.012 240) (#64748b)
+  - Hairline borders: oklch(89% 0.005 240) (#e2e8f0)
+  - Interactive borders: oklch(80% 0.008 240) (#cbd5e1)
+  - Upward movement: oklch(48% 0.160 160) (#089981)
+  - Downward movement: oklch(50% 0.220 25) (#f23645)
+  - Chart grid lines: #f1f5f9 (clean light gray grid)
 
 ## Radii and Shapes
 
