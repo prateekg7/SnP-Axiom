@@ -54,7 +54,7 @@
   - Downward movement (red): oklch(72% 0.220 25) (#f23645)
   - Bollinger baseline (blue): oklch(72% 0.200 260) (#2962ff)
   - Neutral / Hold: oklch(80% 0.160 75) (#f59e0b)
-  - Chart grid lines: #0a0a0a (faint and unobtrusive)
+  - Chart grid lines: #222634 (visible dotted coordinate grid)
 
 - Light theme (standard neutral light):
   - Canvas background: oklch(97.5% 0.006 240) (#f8fafc)
@@ -68,7 +68,7 @@
   - Interactive borders: oklch(80% 0.008 240) (#cbd5e1)
   - Upward movement: oklch(48% 0.160 160) (#089981)
   - Downward movement: oklch(50% 0.220 25) (#f23645)
-  - Chart grid lines: #f1f5f9 (clean light gray grid)
+  - Chart grid lines: #dbe0e8 (visible light coordinate grid)
 
 ## Radii and Shapes
 

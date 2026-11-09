@@ -13,9 +13,9 @@ import {
 const THEME_COLORS = {
   dark: {
     bgPaper: '#000000',
-    gridColor: '#0a0a0a',
-    textColor: '#555555',
-    borderColor: '#181818',
+    gridColor: '#222634',
+    textColor: '#787b86',
+    borderColor: '#262b38',
     candleUp: '#089981',
     candleDown: '#f23645',
     bbUpper: '#ea3943',
@@ -32,9 +32,9 @@ const THEME_COLORS = {
   },
   light: {
     bgPaper: '#ffffff',
-    gridColor: '#f1f5f9',
+    gridColor: '#dbe0e8',
     textColor: '#64748b',
-    borderColor: '#e2e8f0',
+    borderColor: '#cbd2df',
     candleUp: '#089981',
     candleDown: '#f23645',
     bbUpper: '#ea3943',
@@ -381,8 +381,8 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         textColor: colors.textColor,
       },
       grid: {
-        vertLines: { color: colors.gridColor },
-        horzLines: { color: colors.gridColor },
+        vertLines: { color: colors.gridColor, visible: true },
+        horzLines: { color: colors.gridColor, visible: true },
       },
       rightPriceScale: {
         borderColor: colors.borderColor,
