@@ -357,11 +357,6 @@ button:disabled, button[aria-disabled="true"] {
   gap: var(--space-2xs);
 }
 
-@media (max-width: 1100px) {
-  .terminal-upper-row, .terminal-lower-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 
 .upper-chart-col {
   min-width: 0;
@@ -582,6 +577,9 @@ button:disabled, button[aria-disabled="true"] {
   display: flex;
   align-items: center;
   gap: var(--space-3xs);
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tf-button {
@@ -625,6 +623,7 @@ button:disabled, button[aria-disabled="true"] {
   padding: var(--space-xs) 0;
   border-bottom: var(--rule-hair) solid var(--color-rule);
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .signal-row-meta {
@@ -706,7 +705,7 @@ button:disabled, button[aria-disabled="true"] {
 
 .trajectory-steps-strip {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   gap: var(--space-3xs);
   width: 100%;
 }
@@ -795,7 +794,9 @@ button:disabled, button[aria-disabled="true"] {
 
 .table-scroll-wrapper {
   max-height: 220px;
+  overflow-x: auto;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border: var(--rule-hair) solid var(--color-rule);
   border-radius: var(--radius-tile);
   background-color: var(--color-paper);
@@ -803,6 +804,7 @@ button:disabled, button[aria-disabled="true"] {
 
 .compact-log-table {
   width: 100%;
+  min-width: 460px;
   border-collapse: collapse;
   font-size: var(--text-xs);
   text-align: left;
@@ -1234,6 +1236,153 @@ button:disabled, button[aria-disabled="true"] {
   display: flex;
   align-items: center;
   gap: var(--space-2xs);
+}
+
+/* Responsive Layout Breakpoints */
+
+/* Laptops & compact desktop screens (<= 1200px): stack upper row so chart has full width */
+@media (max-width: 1200px) {
+  .terminal-upper-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chart-canvas-area {
+    height: 440px;
+  }
+}
+
+/* Tablets (<= 960px): stack lower row and reflow top header */
+@media (max-width: 960px) {
+  .terminal-lower-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .market-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+
+  .header-left {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .header-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .ohlc-strip {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: var(--space-3xs);
+  }
+
+  .chart-canvas-area {
+    height: 380px;
+  }
+
+  .chart-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+
+  .chart-tag-cluster,
+  .chart-controls-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Mobile & compact viewports (<= 680px) */
+@media (max-width: 680px) {
+  .terminal-workspace {
+    padding: var(--space-3xs);
+    gap: var(--space-3xs);
+  }
+
+  .panel-container {
+    padding: var(--space-xs);
+    gap: var(--space-xs);
+  }
+
+  .chart-canvas-area {
+    height: 320px;
+  }
+
+  .chart-controls-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+  }
+
+  .chart-subgroup {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .matrix-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stats-hero-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .hero-right-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .stats-bottom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel-headline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+  }
+
+  .header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+  }
+
+  .quote-box {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Narrow mobile devices (<= 480px) */
+@media (max-width: 480px) {
+  .chart-canvas-area {
+    height: 280px;
+  }
+
+  .matrix-col-headers,
+  .matrix-data-row {
+    grid-template-columns: 56px minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cell-count-big {
+    font-size: var(--text-md);
+  }
+
+  .matrix-metrics-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .table-scroll-wrapper {
+    max-height: 180px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

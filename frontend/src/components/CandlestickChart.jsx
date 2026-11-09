@@ -217,14 +217,35 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     bbLowerSeriesRef.current = bbLowerSeries;
     pathSeriesRef.current = pathSeries;
 
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      resizeObserver = new ResizeObserver((entries) => {
+        if (!entries || entries.length === 0) return;
+        const entry = entries[0];
+        const newWidth = entry.contentRect.width;
+        const newHeight = entry.contentRect.height;
+        if (newWidth > 0 && chartRef.current) {
+          chartRef.current.applyOptions({
+            width: Math.floor(newWidth),
+            height: newHeight > 0 ? Math.floor(newHeight) : 480,
+          });
+        }
+      });
+      resizeObserver.observe(container);
+    }
+
     const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight || 480,
+        });
       }
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
+      if (resizeObserver) resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
