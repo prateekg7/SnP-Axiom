@@ -32,7 +32,7 @@ export default function App() {
     try {
       const [mRes, cRes, fRes, fhRes, evalRes, perfRes] = await Promise.all([
         fetch('/api/market/latest').then((r) => r.json()).catch(() => ({})),
-        fetch('/api/market/candles?limit=120').then((r) => r.json()).catch(() => []),
+        fetch('/api/market/candles?limit=1500').then((r) => r.json()).catch(() => []),
         fetch('/api/forecast/latest').then((r) => r.json()).catch(() => null),
         fetch('/api/forecast/history?limit=50').then((r) => r.json()).catch(() => []),
         fetch('/api/evaluation/stats').then((r) => r.json()).catch(() => null),

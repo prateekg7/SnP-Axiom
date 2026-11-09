@@ -84,6 +84,22 @@
   - OHLC Bars: high-contrast institutional bar chart with open and close tick marks
   - Area: continuous closing price line with translucent area gradient fill
   - Baseline: relative price deviation above or below the session anchor
+- Traditional indicator overlays:
+  - Bollinger Bands: 20-period simple moving average with two standard deviation envelope
+  - Exponential moving averages: EMA 9 for fast momentum, EMA 21 for intermediate direction, EMA 50 for trend baseline
+  - Session VWAP: intraday volume-weighted average price benchmark
+  - Active indicator values appear in the chart status header and as right-axis price lines
+- Top menu dropdown controls:
+  - Radix primitive dropdowns replace dense button clusters with 40px hit targets
+  - View menu: selects chart series rendering mode
+  - Predictions menu: toggles 30m forward trajectory, 5m barrier level, or clears projections
+  - Indicators menu: independent checkboxes for Bollinger Bands, EMA 9, EMA 21, EMA 50, and VWAP
+- Timeframe zoom controls:
+  - Sized at 34px height with monospace labels
+  - 1D maps to 78 intraday 5-minute bars
+  - 5D maps to 390 bars covering one trading week
+  - 1M maps to 1,560 bars covering one trading month
+  - All fits the complete historical range
 - Prediction visualizations on chart:
   - 30m forward trajectory: 6-step projected path line spanning five to thirty minutes ahead
   - 30m confidence envelope: 90% asymmetric predictive interval bounds

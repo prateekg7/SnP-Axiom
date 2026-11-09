@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineStyle } from 'lightweight-charts';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu';
 
 const THEME_COLORS = {
   dark: {
@@ -12,6 +21,10 @@ const THEME_COLORS = {
     bbUpper: '#ea3943',
     bbMiddle: '#2962ff',
     bbLower: '#089981',
+    ema9: '#06b6d4',
+    ema21: '#f97316',
+    ema50: '#a855f7',
+    vwap: '#eab308',
     pathColor: '#a855f7',
     conformalColor: '#818cf8',
     volUp: '#08998126',
@@ -27,6 +40,10 @@ const THEME_COLORS = {
     bbUpper: '#ea3943',
     bbMiddle: '#2962ff',
     bbLower: '#089981',
+    ema9: '#0891b2',
+    ema21: '#ea580c',
+    ema50: '#9333ea',
+    vwap: '#ca8a04',
     pathColor: '#9333ea',
     conformalColor: '#6366f1',
     volUp: '#08998120',
@@ -62,6 +79,55 @@ function computeBollingerBands(candles, period = 20, multiplier = 2) {
   }
 
   return { upper, middle, lower };
+}
+
+function computeEMA(candles, period) {
+  if (!candles || candles.length < period) return [];
+  const k = 2 / (period + 1);
+  const out = [];
+
+  let sum = 0;
+  for (let i = 0; i < period; i++) {
+    sum += candles[i].close;
+  }
+  let ema = sum / period;
+  out.push({ time: candles[period - 1].time, value: parseFloat(ema.toFixed(2)) });
+
+  for (let i = period; i < candles.length; i++) {
+    ema = candles[i].close * k + ema * (1 - k);
+    out.push({ time: candles[i].time, value: parseFloat(ema.toFixed(2)) });
+  }
+  return out;
+}
+
+function computeVWAP(candles) {
+  if (!candles || candles.length === 0) return [];
+  const out = [];
+  let cumVol = 0;
+  let cumPV = 0;
+  let lastDay = null;
+
+  for (let i = 0; i < candles.length; i++) {
+    const c = candles[i];
+    const dt = new Date(c.time * 1000);
+    const day = dt.getUTCDate();
+
+    // Reset cumulation on day transition
+    if (lastDay !== null && day !== lastDay) {
+      cumVol = 0;
+      cumPV = 0;
+    }
+    lastDay = day;
+
+    const vol = c.volume || 100000;
+    const typicalPrice = (c.high + c.low + c.close) / 3;
+    cumVol += vol;
+    cumPV += typicalPrice * vol;
+
+    const vwap = cumVol > 0 ? cumPV / cumVol : c.close;
+    out.push({ time: c.time, value: parseFloat(vwap.toFixed(2)) });
+  }
+  return out;
 }
 
 function createMainSeries(chart, type, colors, theme, basePrice = 7370) {
@@ -110,17 +176,41 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
   const mainSeriesRef = useRef(null);
   const currentViewTypeRef = useRef('candles');
   const volumeSeriesRef = useRef(null);
+
+  // Indicator series refs
   const bbUpperSeriesRef = useRef(null);
   const bbMiddleSeriesRef = useRef(null);
   const bbLowerSeriesRef = useRef(null);
+  const ema9SeriesRef = useRef(null);
+  const ema21SeriesRef = useRef(null);
+  const ema50SeriesRef = useRef(null);
+  const vwapSeriesRef = useRef(null);
+
   const pathSeriesRef = useRef(null);
   const priceLinesRef = useRef([]);
 
+  // States
   const [chartView, setChartView] = useState('candles'); // 'candles' | 'bars' | 'area' | 'baseline'
-  const [forecastHorizon, setForecastHorizon] = useState('all'); // '30m' | '5m' | 'all' | 'off'
-  const [showBB, setShowBB] = useState(true);
-  const [activeTimeframe, setActiveTimeframe] = useState('5m');
-  const [bbLatest, setBbLatest] = useState({ upper: 7418.55, middle: 7385.20, lower: 7352.10 });
+  const [forecastHorizon, setForecastHorizon] = useState('all'); // 'all' | '30m' | '5m' | 'off'
+  const [indicators, setIndicators] = useState({
+    bb: true,
+    ema9: false,
+    ema21: true,
+    ema50: false,
+    vwap: false,
+  });
+  const [activeTimeframe, setActiveTimeframe] = useState('1D');
+
+  // Latest calculated indicator values for tags
+  const [indicatorValues, setIndicatorValues] = useState({
+    bbUpper: 7418.55,
+    bbMiddle: 7385.20,
+    bbLower: 7352.10,
+    ema9: null,
+    ema21: null,
+    ema50: null,
+    vwap: null,
+  });
 
   const colors = THEME_COLORS[theme] || THEME_COLORS.dark;
 
@@ -186,13 +276,39 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     const bbMiddleSeries = chart.addLineSeries({
       color: colors.bbMiddle,
       lineWidth: 1,
-      title: 'BB 20 SMA',
+      title: 'BB SMA',
       priceLineVisible: false,
     });
     const bbLowerSeries = chart.addLineSeries({
       color: colors.bbLower,
       lineWidth: 1,
       title: 'BB Lower',
+      priceLineVisible: false,
+    });
+
+    // Traditional EMAs & VWAP Lines
+    const ema9Series = chart.addLineSeries({
+      color: colors.ema9,
+      lineWidth: 1,
+      title: 'EMA 9',
+      priceLineVisible: false,
+    });
+    const ema21Series = chart.addLineSeries({
+      color: colors.ema21,
+      lineWidth: 1,
+      title: 'EMA 21',
+      priceLineVisible: false,
+    });
+    const ema50Series = chart.addLineSeries({
+      color: colors.ema50,
+      lineWidth: 1,
+      title: 'EMA 50',
+      priceLineVisible: false,
+    });
+    const vwapSeries = chart.addLineSeries({
+      color: colors.vwap,
+      lineWidth: 1,
+      title: 'VWAP',
       priceLineVisible: false,
     });
 
@@ -215,8 +331,13 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     bbUpperSeriesRef.current = bbUpperSeries;
     bbMiddleSeriesRef.current = bbMiddleSeries;
     bbLowerSeriesRef.current = bbLowerSeries;
+    ema9SeriesRef.current = ema9Series;
+    ema21SeriesRef.current = ema21Series;
+    ema50SeriesRef.current = ema50Series;
+    vwapSeriesRef.current = vwapSeries;
     pathSeriesRef.current = pathSeries;
 
+    // Native ResizeObserver for reliable container-based responsiveness
     let resizeObserver = null;
     if (typeof ResizeObserver !== 'undefined' && container) {
       resizeObserver = new ResizeObserver((entries) => {
@@ -272,6 +393,28 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     });
   }, [theme, colors]);
 
+  // Handle active timeframe range zoom
+  const handleTimeframeChange = (tf) => {
+    setActiveTimeframe(tf);
+    if (!chartRef.current || !candles || candles.length === 0) return;
+    const timeScale = chartRef.current.timeScale();
+    const totalBars = candles.length;
+
+    if (tf === '1D') {
+      const barsCount = Math.min(totalBars, 78);
+      timeScale.setVisibleLogicalRange({ from: totalBars - barsCount, to: totalBars + 6 });
+    } else if (tf === '5D') {
+      const barsCount = Math.min(totalBars, 390);
+      timeScale.setVisibleLogicalRange({ from: totalBars - barsCount, to: totalBars + 12 });
+    } else if (tf === '1M') {
+      const barsCount = Math.min(totalBars, 1560);
+      timeScale.setVisibleLogicalRange({ from: totalBars - barsCount, to: totalBars + 20 });
+    } else {
+      // 3M, 6M, YTD, 1Y, 5Y, All
+      timeScale.fitContent();
+    }
+  };
+
   // Update chart series, view types, indicators, and predictions
   useEffect(() => {
     if (!chartRef.current || !candles || candles.length === 0) return;
@@ -296,7 +439,6 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     // Switch main series type if requested view does not match current series
     const basePrice = formatted.length > 0 ? formatted[0].close : 7370;
     if (currentViewTypeRef.current !== chartView) {
-      // Clear previous price lines attached to the old series
       priceLinesRef.current.forEach((pl) => {
         try {
           mainSeriesRef.current?.removePriceLine(pl);
@@ -331,18 +473,26 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       volumeSeriesRef.current.setData(volData);
     }
 
-    // Bollinger Bands
-    if (showBB && formatted.length >= 20) {
+    // Calculate Traditional Indicators
+    let lastBBUpper = 7418.55;
+    let lastBBMid = 7385.20;
+    let lastBBLow = 7352.10;
+    let lastEMA9 = null;
+    let lastEMA21 = null;
+    let lastEMA50 = null;
+    let lastVWAP = null;
+
+    // 1. Bollinger Bands
+    if (indicators.bb && formatted.length >= 20) {
       const { upper, middle, lower } = computeBollingerBands(formatted, 20, 2);
       bbUpperSeriesRef.current?.setData(upper);
       bbMiddleSeriesRef.current?.setData(middle);
       bbLowerSeriesRef.current?.setData(lower);
 
       if (upper.length > 0) {
-        const lastUpper = upper[upper.length - 1].value;
-        const lastMiddle = middle[middle.length - 1].value;
-        const lastLower = lower[lower.length - 1].value;
-        setBbLatest({ upper: lastUpper, middle: lastMiddle, lower: lastLower });
+        lastBBUpper = upper[upper.length - 1].value;
+        lastBBMid = middle[middle.length - 1].value;
+        lastBBLow = lower[lower.length - 1].value;
       }
     } else {
       bbUpperSeriesRef.current?.setData([]);
@@ -350,7 +500,53 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       bbLowerSeriesRef.current?.setData([]);
     }
 
-    // Reset price line references on the current main series
+    // 2. EMA 9
+    if (indicators.ema9 && formatted.length >= 9) {
+      const ema9Data = computeEMA(formatted, 9);
+      ema9SeriesRef.current?.setData(ema9Data);
+      if (ema9Data.length > 0) lastEMA9 = ema9Data[ema9Data.length - 1].value;
+    } else {
+      ema9SeriesRef.current?.setData([]);
+    }
+
+    // 3. EMA 21
+    if (indicators.ema21 && formatted.length >= 21) {
+      const ema21Data = computeEMA(formatted, 21);
+      ema21SeriesRef.current?.setData(ema21Data);
+      if (ema21Data.length > 0) lastEMA21 = ema21Data[ema21Data.length - 1].value;
+    } else {
+      ema21SeriesRef.current?.setData([]);
+    }
+
+    // 4. EMA 50
+    if (indicators.ema50 && formatted.length >= 50) {
+      const ema50Data = computeEMA(formatted, 50);
+      ema50SeriesRef.current?.setData(ema50Data);
+      if (ema50Data.length > 0) lastEMA50 = ema50Data[ema50Data.length - 1].value;
+    } else {
+      ema50SeriesRef.current?.setData([]);
+    }
+
+    // 5. VWAP
+    if (indicators.vwap && formatted.length > 0) {
+      const vwapData = computeVWAP(formatted);
+      vwapSeriesRef.current?.setData(vwapData);
+      if (vwapData.length > 0) lastVWAP = vwapData[vwapData.length - 1].value;
+    } else {
+      vwapSeriesRef.current?.setData([]);
+    }
+
+    setIndicatorValues({
+      bbUpper: lastBBUpper,
+      bbMiddle: lastBBMid,
+      bbLower: lastBBLow,
+      ema9: lastEMA9,
+      ema21: lastEMA21,
+      ema50: lastEMA50,
+      vwap: lastVWAP,
+    });
+
+    // Reset indicator price line badges on main series
     priceLinesRef.current.forEach((pl) => {
       try {
         mainSeriesRef.current?.removePriceLine(pl);
@@ -359,17 +555,17 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     priceLinesRef.current = [];
 
     // Right-scale Bollinger Band indicator badges
-    if (showBB && bbLatest.upper && mainSeriesRef.current) {
+    if (indicators.bb && mainSeriesRef.current) {
       const upLine = mainSeriesRef.current.createPriceLine({
-        price: bbLatest.upper,
+        price: lastBBUpper,
         color: colors.bbUpper,
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: 'BB Upper',
+        title: 'BB Up',
       });
       const midLine = mainSeriesRef.current.createPriceLine({
-        price: bbLatest.middle,
+        price: lastBBMid,
         color: colors.bbMiddle,
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
@@ -377,17 +573,43 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         title: 'BB SMA',
       });
       const lowLine = mainSeriesRef.current.createPriceLine({
-        price: bbLatest.lower,
+        price: lastBBLow,
         color: colors.bbLower,
         lineWidth: 1,
         lineStyle: LineStyle.Solid,
         axisLabelVisible: true,
-        title: 'BB Lower',
+        title: 'BB Low',
       });
       priceLinesRef.current.push(upLine, midLine, lowLine);
     }
 
-    // Prediction Visualizations on Graph (30m trajectory, 5m target, conformal intervals)
+    // Right-scale EMA 21 badge
+    if (indicators.ema21 && lastEMA21 && mainSeriesRef.current) {
+      const emaLine = mainSeriesRef.current.createPriceLine({
+        price: lastEMA21,
+        color: colors.ema21,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: 'EMA 21',
+      });
+      priceLinesRef.current.push(emaLine);
+    }
+
+    // Right-scale VWAP badge
+    if (indicators.vwap && lastVWAP && mainSeriesRef.current) {
+      const vwapLine = mainSeriesRef.current.createPriceLine({
+        price: lastVWAP,
+        color: colors.vwap,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dotted,
+        axisLabelVisible: true,
+        title: 'VWAP',
+      });
+      priceLinesRef.current.push(vwapLine);
+    }
+
+    // Prediction Visualizations on Graph
     if (forecast && formatted.length > 0 && mainSeriesRef.current) {
       const lastCandle = formatted[formatted.length - 1];
       const lastTime = lastCandle.time;
@@ -409,7 +631,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       }
 
       // 2. 30m Trajectory curve & 30m Conformal bounds
-      if ((forecastHorizon === '30m' || forecastHorizon === 'all')) {
+      if (forecastHorizon === '30m' || forecastHorizon === 'all') {
         if (forecast.path_30m && forecast.path_30m.length > 0) {
           const pathData = [{ time: lastTime, value: lastCandle.close }];
           forecast.path_30m.forEach((pt) => {
@@ -474,21 +696,52 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     } else {
       pathSeriesRef.current?.setData([]);
     }
-  }, [candles, forecast, chartView, forecastHorizon, showBB, theme, colors, bbLatest.upper]);
+  }, [candles, forecast, chartView, forecastHorizon, indicators, theme, colors]);
 
+  const activeIndicatorCount = Object.values(indicators).filter(Boolean).length;
   const timeframes = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
 
   return (
     <div className="chart-wrapper-panel">
-      {/* Top chart indicator and view controls bar */}
+      {/* Top chart indicator tags and Shadcn Dropdown menus */}
       <div className="chart-header-row">
         <div className="chart-tag-cluster">
-          <div className="study-chip">
-            <span className="study-title">BB 20 SMA close 2</span>
-            <span className="bb-metric-tag badge-bb-upper">{bbLatest.upper.toFixed(2)}</span>
-            <span className="bb-metric-tag badge-bb-middle">{bbLatest.middle.toFixed(2)}</span>
-            <span className="bb-metric-tag badge-bb-lower">{bbLatest.lower.toFixed(2)}</span>
-          </div>
+          {indicators.bb && (
+            <div className="study-chip">
+              <span className="study-title">BB 20 SMA</span>
+              <span className="bb-metric-tag badge-bb-upper">{indicatorValues.bbUpper.toFixed(2)}</span>
+              <span className="bb-metric-tag badge-bb-middle">{indicatorValues.bbMiddle.toFixed(2)}</span>
+              <span className="bb-metric-tag badge-bb-lower">{indicatorValues.bbLower.toFixed(2)}</span>
+            </div>
+          )}
+
+          {indicators.ema9 && indicatorValues.ema9 && (
+            <div className="study-chip">
+              <span className="study-title">EMA 9</span>
+              <span className="bb-metric-tag badge-ema9">{indicatorValues.ema9.toFixed(2)}</span>
+            </div>
+          )}
+
+          {indicators.ema21 && indicatorValues.ema21 && (
+            <div className="study-chip">
+              <span className="study-title">EMA 21</span>
+              <span className="bb-metric-tag badge-ema21">{indicatorValues.ema21.toFixed(2)}</span>
+            </div>
+          )}
+
+          {indicators.ema50 && indicatorValues.ema50 && (
+            <div className="study-chip">
+              <span className="study-title">EMA 50</span>
+              <span className="bb-metric-tag badge-ema50">{indicatorValues.ema50.toFixed(2)}</span>
+            </div>
+          )}
+
+          {indicators.vwap && indicatorValues.vwap && (
+            <div className="study-chip">
+              <span className="study-title">VWAP</span>
+              <span className="bb-metric-tag badge-vwap">{indicatorValues.vwap.toFixed(2)}</span>
+            </div>
+          )}
 
           <div className="study-chip volume-chip">
             <span className="vol-title">Vol</span>
@@ -496,103 +749,181 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
           </div>
         </div>
 
+        {/* 3 Prominent Shadcn Dropdowns: View, Predictions, Indicators */}
         <div className="chart-controls-group">
-          {/* Chart View selector: 4 views (Candles, Bars, Area, Baseline) */}
-          <div className="chart-subgroup">
-            <span className="chart-group-label">View:</span>
-            <button
-              type="button"
-              onClick={() => setChartView('candles')}
-              className={`chart-tab-toggle ${chartView === 'candles' ? 'active' : ''}`}
-              title="Candlestick chart view"
-            >
-              <span>Candles</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartView('bars')}
-              className={`chart-tab-toggle ${chartView === 'bars' ? 'active' : ''}`}
-              title="OHLC Bars chart view"
-            >
-              <span>Bars</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartView('area')}
-              className={`chart-tab-toggle ${chartView === 'area' ? 'active' : ''}`}
-              title="Area line chart view"
-            >
-              <span>Area</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartView('baseline')}
-              className={`chart-tab-toggle ${chartView === 'baseline' ? 'active' : ''}`}
-              title="Baseline relative chart view"
-            >
-              <span>Baseline</span>
-            </button>
-          </div>
+          {/* Dropdown 1: View selection */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="shadcn-dropdown-trigger" title="Select Chart View">
+                <span className="shadcn-trigger-label">View</span>
+                <span className="shadcn-trigger-value">
+                  {chartView === 'candles' && 'Candles'}
+                  {chartView === 'bars' && 'OHLC Bars'}
+                  {chartView === 'area' && 'Area Line'}
+                  {chartView === 'baseline' && 'Baseline'}
+                </span>
+                <span className="shadcn-trigger-chevron">&#9662;</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Chart Price View</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setChartView('candles')}
+                className={chartView === 'candles' ? 'active' : ''}
+              >
+                <span>Candles</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setChartView('bars')}
+                className={chartView === 'bars' ? 'active' : ''}
+              >
+                <span>OHLC Bars</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setChartView('area')}
+                className={chartView === 'area' ? 'active' : ''}
+              >
+                <span>Area Line</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setChartView('baseline')}
+                className={chartView === 'baseline' ? 'active' : ''}
+              >
+                <span>Baseline</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          {/* Forecast Horizon selector */}
-          <div className="chart-subgroup">
-            <span className="chart-group-label">Pred:</span>
-            <button
-              type="button"
-              onClick={() => setForecastHorizon('30m')}
-              className={`chart-tab-toggle ${forecastHorizon === '30m' ? 'active' : ''}`}
-              title="30-minute forward trajectory and envelope"
-            >
-              <span>30m path</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForecastHorizon('5m')}
-              className={`chart-tab-toggle ${forecastHorizon === '5m' ? 'active' : ''}`}
-              title="5-minute directional target line"
-            >
-              <span>5m target</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForecastHorizon('all')}
-              className={`chart-tab-toggle ${forecastHorizon === 'all' ? 'active' : ''}`}
-              title="Both 5m target and 30m path"
-            >
-              <span>All</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setForecastHorizon('off')}
-              className={`chart-tab-toggle ${forecastHorizon === 'off' ? 'active' : ''}`}
-              title="Hide all forecast lines"
-            >
-              <span>Off</span>
-            </button>
-          </div>
+          {/* Dropdown 2: Predictions selection */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="shadcn-dropdown-trigger" title="Select Forecast Horizon">
+                <span className="shadcn-trigger-label">Prediction</span>
+                <span className="shadcn-trigger-value">
+                  {forecastHorizon === 'all' && 'All (30m + 5m)'}
+                  {forecastHorizon === '30m' && '30m Trajectory'}
+                  {forecastHorizon === '5m' && '5m Target'}
+                  {forecastHorizon === 'off' && 'Off'}
+                </span>
+                <span className="shadcn-trigger-chevron">&#9662;</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Forecast Horizon</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setForecastHorizon('all')}
+                className={forecastHorizon === 'all' ? 'active' : ''}
+              >
+                <span>All Projections (30m + 5m)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setForecastHorizon('30m')}
+                className={forecastHorizon === '30m' ? 'active' : ''}
+              >
+                <span>30m Trajectory & Envelope</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setForecastHorizon('5m')}
+                className={forecastHorizon === '5m' ? 'active' : ''}
+              >
+                <span>5m Target Barrier Line</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setForecastHorizon('off')}
+                className={forecastHorizon === 'off' ? 'active' : ''}
+              >
+                <span>Off (Hide Projections)</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <button
-            type="button"
-            onClick={() => setShowBB(!showBB)}
-            className={`chart-tab-toggle ${showBB ? 'active' : ''}`}
-            title="Toggle Bollinger Bands"
-          >
-            <span>BB 20</span>
-          </button>
+          {/* Dropdown 3: Traditional Indicators selection */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="shadcn-dropdown-trigger" title="Toggle Traditional Indicators">
+                <span className="shadcn-trigger-label">Indicators</span>
+                <span className="shadcn-trigger-value">
+                  {activeIndicatorCount > 0 ? `${activeIndicatorCount} Active` : 'None'}
+                </span>
+                <span className="shadcn-trigger-chevron">&#9662;</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Traditional Indicators</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={indicators.bb}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, bb: Boolean(checked) }))
+                }
+              >
+                Bollinger Bands (20, 2)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={indicators.ema9}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, ema9: Boolean(checked) }))
+                }
+              >
+                EMA 9 (Fast Trend)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={indicators.ema21}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, ema21: Boolean(checked) }))
+                }
+              >
+                EMA 21 (Medium Trend)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={indicators.ema50}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, ema50: Boolean(checked) }))
+                }
+              >
+                EMA 50 (Slow Baseline)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={indicators.vwap}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, vwap: Boolean(checked) }))
+                }
+              >
+                VWAP (Session Volume)
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() =>
+                  setIndicators({
+                    bb: false,
+                    ema9: false,
+                    ema21: false,
+                    ema50: false,
+                    vwap: false,
+                  })
+                }
+              >
+                <span>Clear All Indicators</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Chart Canvas */}
       <div ref={chartContainerRef} className="chart-canvas-area" />
 
-      {/* Bottom Toolbar matching TradingView */}
+      {/* Bottom Toolbar with Working Larger Timeframe Buttons */}
       <div className="chart-bottom-bar">
         <div className="timeframe-selector">
           {timeframes.map((tf) => (
             <button
               key={tf}
               type="button"
-              onClick={() => setActiveTimeframe(tf)}
+              onClick={() => handleTimeframeChange(tf)}
               className={`tf-button ${activeTimeframe === tf ? 'active' : ''}`}
             >
               {tf}
