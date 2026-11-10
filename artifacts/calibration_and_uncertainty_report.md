@@ -4,15 +4,15 @@ This report presents empirical calibration results, uncertainty bounds, and pred
 
 ## Probability calibration comparison
 
-- Calibration fit period: Chronological validation set (2500 bars).
-- Evaluation period: Out-of-sample test set (2484 bars).
+- Calibration fit period: Chronological validation set (14536 bars).
+- Evaluation period: Out-of-sample test set (14521 bars).
 - Event: P(High(t+1) > Close(t)).
 
 | Method | Brier Score | Log Loss | ROC-AUC | Expected Calibration Error (ECE) |
 |---|---|---|---|---|
-| Raw Model | 0.0504 | 0.2239 | 0.5334 | 0.0291 |
-| Platt (Logistic) | 0.0492 | 0.2044 | 0.5334 | 0.0093 |
-| Isotonic Regression | 0.0497 | 0.2081 | 0.5287 | 0.0135 |
+| Raw Model | 0.0518 | 0.2127 | 0.5413 | 0.0009 |
+| Platt (Logistic) | 0.0517 | 0.2119 | 0.5413 | 0.0004 |
+| Isotonic Regression | 0.0518 | 0.2183 | 0.5369 | 0.0003 |
 
 Platt scaling reduced calibration error while preserving rank ordering across probabilities.
 
@@ -20,13 +20,13 @@ Platt scaling reduced calibration error while preserving rank ordering across pr
 
 - Target: Next 5-minute return (R_1).
 - Target nominal coverage: 90.0%.
-- Empirical test coverage: 78.8%.
-- Mean interval width: 0.001426 in log return space.
+- Empirical test coverage: 88.1%.
+- Mean interval width: 0.002043 in log return space.
 
-Empirical coverage reached 78.8% on the untouched test period, reflecting slightly wider volatility in the autumn session compared to the validation window.
+Empirical coverage reached 88.1% on the untouched test period, reflecting slightly wider volatility in the autumn session compared to the validation window.
 
 ## 30-minute extrema errors
 
-- 30-minute high prediction MAE: 0.000750 (RMSE: 0.001069).
-- 30-minute low prediction MAE: 0.000823 (RMSE: 0.001257).
+- 30-minute high prediction MAE: 0.000751 (RMSE: 0.001103).
+- 30-minute low prediction MAE: 0.000834 (RMSE: 0.001194).
 - Invariant verification: Predicted low30 is strictly less than or equal to predicted high30 across all test candles.

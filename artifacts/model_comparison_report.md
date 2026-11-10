@@ -5,9 +5,9 @@ This report documents out-of-sample evaluation across baseline models, the Light
 ## Evaluation protocol
 
 - Validation method: Chronological walk-forward split.
-- Training set: First 60% of data (7500 candles).
-- Validation set: Next 20% of data (2500 candles).
-- Final test set: Final 20% of data (2484 candles).
+- Training set: First 60% of data (43608 candles).
+- Validation set: Next 20% of data (14536 candles).
+- Final test set: Final 20% of data (14521 candles).
 - Split protection: 6-bar purging and 2-bar embargo applied at all boundaries to eliminate target leakage.
 - Features: 36 engineered past-only features. All scalers fitted on training split only.
 
@@ -19,26 +19,26 @@ The primary probability target is P(High(t+1) > Close(t)).
 
 | Model | Base Rate | Brier Score | Log Loss | ROC-AUC | PR-AUC | ECE |
 |---|---|---|---|---|---|---|
-| Base-Rate Baseline | 0.9482 | 0.0498 | 0.2135 | 0.5000 | 0.9741 | 0.0253 |
-| Momentum Baseline | 0.9482 | 0.0496 | 0.2122 | 0.5082 | 0.9621 | 0.0119 |
-| LightGBM Benchmark | 0.9482 | 0.0504 | 0.2239 | 0.5334 | 0.9540 | 0.0291 |
-| LSTM Multi-Task | 0.9486 | 0.0521 | 0.2260 | 0.5377 | 0.9551 | 0.0384 |
+| Base-Rate Baseline | 0.9452 | 0.0518 | 0.2123 | 0.5000 | 0.9726 | 0.0001 |
+| Momentum Baseline | 0.9452 | 0.0523 | 0.2212 | 0.5158 | 0.9608 | 0.0150 |
+| LightGBM Benchmark | 0.9452 | 0.0518 | 0.2127 | 0.5413 | 0.9510 | 0.0009 |
+| LSTM Multi-Task | 0.9452 | 0.0518 | 0.2124 | 0.5410 | 0.9507 | 0.0062 |
 
 ### Validation set classification metrics
 
 | Model | Base Rate | Brier Score | Log Loss | ROC-AUC | PR-AUC | ECE |
 |---|---|---|---|---|---|---|
-| Base-Rate Baseline | 0.9538 | 0.0445 | 0.1934 | 0.5000 | 0.9769 | 0.0197 |
-| Momentum Baseline | 0.9538 | 0.0452 | 0.2037 | 0.4072 | 0.9566 | 0.0058 |
-| LightGBM Benchmark | 0.9538 | 0.0448 | 0.1968 | 0.5791 | 0.9602 | 0.0202 |
-| LSTM Multi-Task | 0.9535 | 0.0506 | 0.2100 | 0.5787 | 0.9630 | 0.0420 |
+| Base-Rate Baseline | 0.9458 | 0.0512 | 0.2106 | 0.5000 | 0.9729 | 0.0007 |
+| Momentum Baseline | 0.9458 | 0.0518 | 0.2204 | 0.5064 | 0.9603 | 0.0146 |
+| LightGBM Benchmark | 0.9458 | 0.0513 | 0.2109 | 0.5390 | 0.9533 | 0.0015 |
+| LSTM Multi-Task | 0.9457 | 0.0514 | 0.2111 | 0.5431 | 0.9531 | 0.0060 |
 
 ## Return regression metrics (5-minute log return)
 
 | Model | Test MAE | Test RMSE | Val MAE | Val RMSE |
 |---|---|---|---|---|
-| LightGBM Benchmark | 0.000487 | 0.000724 | 0.000330 | 0.000457 |
-| LSTM Multi-Task | 0.001001 | 0.001445 | 0.000812 | 0.000988 |
+| LightGBM Benchmark | 0.000498 | 0.000725 | 0.000451 | 0.000655 |
+| LSTM Multi-Task | 0.000855 | 0.001075 | 0.000830 | 0.001022 |
 
 ## Key observations
 
