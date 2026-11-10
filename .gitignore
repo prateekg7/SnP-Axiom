@@ -1,9 +1,11 @@
 /*.md
 !README.md
-!AGENT_HANDOFF.md
-!AGENTS.md
-!tasks.md
-!DESIGN.md
+
+# Legacy spec documents
+docs/architecture.md
+docs/backup.md
+docs/prd.md
+docs/spec.md
 
 # Data directories (raw/processed caches)
 data/raw/

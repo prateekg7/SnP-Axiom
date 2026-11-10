@@ -165,6 +165,17 @@ This is an implementation roadmap, not an enterprise QA plan. Prioritize a worki
 
 ---
 
+## Phase 8: Multi-year testing and strategy benchmarking
+
+- [x] Ingest 5-year SPX dataset (February 2023 to November 2026, 72,681 bars) and generate `datawhole.csv`.
+- [x] Move all Pine and Python scripts into the `scripts/` folder.
+- [x] Create `test results/test 1` directory with backtest and live session screenshots.
+- [x] Author `test results/test 1/results.md` covering model structure, features, confusion matrix, P&L, and backtest analysis.
+- [x] Add `datawhole.csv` to `.gitignore`.
+- [x] Update `README.md` with Test 1 (`spx-coupled`) execution and performance metrics.
+
+---
+
 ## Definition of done
 
 The first complete version is done when:
