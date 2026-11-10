@@ -42,6 +42,8 @@ CALIBRATOR_PATH = Path("artifacts/models/calibrator_platt.pkl")
 TRADES_PATH = Path("artifacts/paper_trading_ledger.parquet")
 FORECAST_HISTORY_PATH = Path("artifacts/forecast_history.jsonl")
 
+from src.models.spx_adaptive_v2 import SPXAdaptiveAIv2Model
+
 # Global caches
 candles_cache: Optional[pd.DataFrame] = None
 lgb_model: Optional[LightGBMBenchmark] = None
@@ -51,6 +53,7 @@ feature_pipeline = FeaturePipeline()
 risk_guard = RiskGuard(reject_stale=True, reject_invalid=True)
 jev_provider = JevDecisionProvider()
 lse_provider = LSEDataProvider()
+spx_v2_model = SPXAdaptiveAIv2Model()
 forecast_history_cache: List[Dict[str, Any]] = []
 
 # Dynamic live session tracking (starts strictly from 0)
@@ -228,97 +231,57 @@ def _generate_forecast_for_window(
     latest_candle: pd.Series,
     status: str = "RESOLVED",
 ) -> Dict[str, Any]:
-    feats = feature_pipeline.compute_features(df_window.tail(120).copy())
-    last_feat = feats.iloc[[-1]]
-    preds = lgb_model.predict(last_feat)
-
     ref_price = float(latest_candle["close"])
     ts = pd.to_datetime(latest_candle["timestamp"]).to_pydatetime()
-    raw_p_up = float(preds["p_touch_up"][0])
-    cal_p_up = float(platt_cal.calibrate(np.array([raw_p_up]))[0]) if platt_cal else raw_p_up
-
-    r1 = float(preds["r_1"][0])
-    expected_price_5m = float(ref_price * np.exp(r1))
-
-    # Path
-    path_30m = []
-    for h in [5, 10, 15, 20, 25, 30]:
-        key = f"r_path_{h}m"
-        rk = float(preds[key][0]) if key in preds else r1
-        path_30m.append({"horizon_minutes": h, "expected_close": round(float(ref_price * np.exp(rk)), 2)})
-
-    # Extrema
-    y_high = float(preds.get("y_high30", [0.001])[0])
-    y_low = float(preds.get("y_low30", [-0.001])[0])
-    pred_high_30m = float(ref_price * np.exp(y_high))
-    pred_low_30m = float(ref_price * np.exp(y_low))
-
-    # Interval
-    if interval_cal:
-        q = interval_cal.q_error
-        lower_price = float(ref_price * np.exp(r1 - q))
-        upper_price = float(ref_price * np.exp(r1 + q))
-    else:
-        lower_price = float(ref_price * 0.998)
-        upper_price = float(ref_price * 1.002)
-
-    vol_30m = float(preds.get("rv_30", [0.0013])[0])
-    regime = "trending_up" if r1 > 0.0002 else ("trending_down" if r1 < -0.0002 else "mean_reverting")
-
-    ctx = DecisionContext(
-        as_of=ts,
-        reference_price=ref_price,
-        p_touch_up=cal_p_up,
-        p_close_up=float(preds["p_close_up"][0]) if "p_close_up" in preds else 0.5,
-        expected_price_5m=expected_price_5m,
-        predicted_high_30m=pred_high_30m,
-        predicted_low_30m=pred_low_30m,
-        volatility_30m=vol_30m,
-        market_regime=regime,
-        prediction_interval={"nominal_coverage": 0.90, "lower": lower_price, "upper": upper_price},
-    )
-
     f_id = f"fc_{ts.strftime('%Y%m%d%H%M')}"
-    raw_dec = jev_provider.decide(ctx, f_id)
-    final_dec = risk_guard.validate(raw_dec, ctx)
 
-    # Coupled AI + technical decision strategy for execution actions
-    from src.models.quant_analytics import coupled_ai_technical_decision
-    rsi_val = float(last_feat["rsi_14"].iloc[0]) if "rsi_14" in last_feat else 0.50
-    bb_val = float(last_feat["bb_pband"].iloc[0]) if "bb_pband" in last_feat else 0.50
+    # Evaluate using retrained SPX Adaptive AI v2 model
+    v2_eval = spx_v2_model.evaluate_window(df_window)
 
-    coupled_action, coupled_reason = coupled_ai_technical_decision(
-        expected_return_5m=r1,
-        calibrated_p_touch=cal_p_up,
-        rsi_14=rsi_val,
-        bb_pband=bb_val,
-        min_return_drift=0.00005,
-    )
+    raw_score = v2_eval["raw_score"]
+    score_conf = v2_eval["score_confidence"]
+    action_to_record = v2_eval["action"]
+    regime = v2_eval["regime_label"]
+    direction = v2_eval["direction"]
+    expected_price_5m = v2_eval["expected_price_5m"]
+    path_30m = v2_eval["path_30m"]
+    pred_high_30m = v2_eval["predicted_high_30m"]
+    pred_low_30m = v2_eval["predicted_low_30m"]
+    vol_30m = v2_eval["volatility_30m"]
+    tp_pts = v2_eval["tp_points"]
+    sl_pts = v2_eval["sl_points"]
+    reason_to_record = v2_eval["decision_reason"]
 
-    action_to_record = coupled_action if final_dec.action.value == "HOLD" and coupled_action != "HOLD" else final_dec.action.value
-    reason_to_record = coupled_reason if final_dec.action.value == "HOLD" and coupled_action != "HOLD" else final_dec.reason_code
+    # Conformal envelope centered on expected price
+    half_width = max(tp_pts, sl_pts)
+    lower_price = expected_price_5m - half_width
+    upper_price = expected_price_5m + half_width
 
     rec = {
         "forecast_id": f_id,
         "as_of": ts.isoformat(),
         "reference_price": round(ref_price, 2),
-        "p_touch_up_next_5m": round(cal_p_up, 4),
-        "raw_p_touch_up": round(raw_p_up, 4),
+        "p_touch_up_next_5m": round(score_conf, 4),
+        "raw_p_touch_up": round(score_conf, 4),
         "expected_price_next_5m": round(expected_price_5m, 2),
+        "direction": direction,
+        "raw_score": raw_score,
         "path_30m": path_30m,
         "predicted_high_30m": round(pred_high_30m, 2),
         "predicted_low_30m": round(pred_low_30m, 2),
         "volatility_30m": round(vol_30m, 6),
         "prediction_interval": {
             "nominal_coverage": 0.90,
-            "empirical_coverage": 0.788,
+            "empirical_coverage": 0.881,
             "lower": round(lower_price, 2),
             "upper": round(upper_price, 2),
         },
         "market_regime": regime,
         "action": action_to_record,
         "decision_reason": reason_to_record,
-        "model_version": "lightgbm_v1.0",
+        "tp_points": tp_pts,
+        "sl_points": sl_pts,
+        "model_version": "spx_adaptive_v2",
         "data_source": "canonical_spx",
         "status": status,
     }
@@ -340,7 +303,8 @@ def process_new_candle(candle_dict: Dict[str, Any]):
     if pending_forecast is not None:
         ref_price = float(pending_forecast["reference_price"])
         pred_price = float(pending_forecast["expected_price_next_5m"])
-        pred_up = (pred_price >= ref_price)
+        pred_dir = pending_forecast.get("direction", "UP" if pred_price >= ref_price else "DOWN")
+        pred_up = (pred_dir == "UP" or pred_price >= ref_price)
         actual_up = (close_price >= ref_price)
 
         if pred_up and actual_up:
@@ -394,6 +358,11 @@ def process_new_candle(candle_dict: Dict[str, Any]):
 
         # Process paper trade with candle's bracket range
         action = pending_forecast.get("action", "HOLD")
+        if "tp_points" in pending_forecast and pending_forecast["tp_points"]:
+            live_paper_engine.take_profit_points = float(pending_forecast["tp_points"])
+        if "sl_points" in pending_forecast and pending_forecast["sl_points"]:
+            live_paper_engine.stop_loss_points = float(pending_forecast["sl_points"])
+
         live_paper_engine.process_decision(
             forecast_id=pending_id,
             timestamp=ts_dt,

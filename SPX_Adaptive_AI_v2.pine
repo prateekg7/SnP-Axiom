@@ -1,0 +1,197 @@
+//@version=6
+strategy(
+     title="SPX Adaptive AI v2 [Regime + Intraday Structure]",
+     shorttitle="SPX Adaptive v2",
+     overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed,
+     default_qty_value=1,
+     commission_type=strategy.commission.cash_per_order,
+     commission_value=0.15,
+     slippage=1,
+     pyramiding=0,
+     calc_on_every_tick=false,
+     process_orders_on_close=false,
+     max_bars_back=1200)
+
+// IMPORTANT
+// Retrained empirical model weights calibrated on 72,681 regular-session 5m SPX bars (2023-2026).
+// Scored directional features map to calibrated confidence for intraday regime shifts.
+// SPX is a cash index and cannot itself be traded. Treat Strategy Tester fills as
+// a signal benchmark; validate execution separately on ES/MES or SPY.
+// Designed primarily for 5-minute US regular-session charts.
+
+// ─── Inputs ───────────────────────────────────────────────────────────────────
+grpSession = "Session"
+tz              = input.string("America/New_York", "Session timezone", group=grpSession)
+entrySession    = input.session("0935-1550:23456", "Entry window", group=grpSession)
+flatSession     = input.session("1555-1600:23456", "Flatten window", group=grpSession)
+openingSession  = input.session("0930-1000:23456", "Opening range window", group=grpSession)
+useVwapFilter   = input.bool(true, "Use session VWAP", group=grpSession)
+
+grpModel = "Signal model"
+emaFastLen      = input.int(9, "Fast EMA", minval=2, group=grpModel)
+emaMidLen       = input.int(21, "Medium EMA", minval=3, group=grpModel)
+emaSlowLen      = input.int(50, "Slow EMA", minval=5, group=grpModel)
+rsiLen          = input.int(14, "RSI length", minval=3, group=grpModel)
+dmiLen          = input.int(14, "DI length", minval=3, group=grpModel)
+adxSmooth       = input.int(14, "ADX smoothing", minval=3, group=grpModel)
+atrLen          = input.int(14, "ATR length", minval=3, group=grpModel)
+trendAdx        = input.float(20.0, "Trend regime ADX", minval=5, step=0.5, group=grpModel)
+minScore        = input.float(2.20, "Minimum directional score", minval=0.5, step=0.05, group=grpModel)
+minConfidence   = input.float(0.65, "Minimum score-confidence proxy", minval=0.51, maxval=0.90, step=0.01, group=grpModel)
+useOpeningRange = input.bool(true, "Use opening-range breakout", group=grpModel)
+
+grpRisk = "Risk management"
+tpAtr           = input.float(2.00, "Take profit (ATR)", minval=0.25, step=0.05, group=grpRisk)
+slAtr           = input.float(1.00, "Stop loss (ATR)", minval=0.25, step=0.05, group=grpRisk)
+maxHoldBars     = input.int(6, "Maximum holding bars", minval=1, maxval=24, group=grpRisk)
+maxVolRatio     = input.float(2.50, "Skip if ATR / slow ATR exceeds", minval=1.1, step=0.1, group=grpRisk)
+minVolRatio     = input.float(0.45, "Skip if ATR / slow ATR below", minval=0.1, maxval=1.0, step=0.05, group=grpRisk)
+slowAtrLen      = input.int(156, "Slow ATR baseline bars", minval=30, group=grpRisk)
+
+grpDisplay = "Display"
+showHud         = input.bool(true, "Show status panel", group=grpDisplay)
+showSignals     = input.bool(true, "Show entry markers", group=grpDisplay)
+
+// ─── Session state ───────────────────────────────────────────────────────────
+inEntry   = not na(time(timeframe.period, entrySession, tz))
+inFlat    = not na(time(timeframe.period, flatSession, tz))
+inOpening = not na(time(timeframe.period, openingSession, tz))
+newDay    = ta.change(time("D", "0000-2359", tz)) != 0
+
+var float openingHigh = na
+var float openingLow  = na
+var bool openingReady = false
+if newDay
+    openingHigh := na
+    openingLow := na
+    openingReady := false
+if inOpening
+    openingHigh := na(openingHigh) ? high : math.max(openingHigh, high)
+    openingLow  := na(openingLow) ? low : math.min(openingLow, low)
+if not inOpening and not na(openingHigh) and not na(openingLow)
+    openingReady := true
+
+// ─── Market features ─────────────────────────────────────────────────────────
+emaFast = ta.ema(close, emaFastLen)
+emaMid  = ta.ema(close, emaMidLen)
+emaSlow = ta.ema(close, emaSlowLen)
+rsi     = ta.rsi(close, rsiLen)
+atr     = ta.atr(atrLen)
+atrSlow = ta.sma(atr, slowAtrLen)
+volRatio = atrSlow > 0 ? atr / atrSlow : na
+[diPlus, diMinus, adx] = ta.dmi(dmiLen, adxSmooth)
+vwapValue = ta.vwap(hlc3)
+
+ret3 = close[3] != 0 ? close / close[3] - 1.0 : 0.0
+ret6 = close[6] != 0 ? close / close[6] - 1.0 : 0.0
+ret12 = close[12] != 0 ? close / close[12] - 1.0 : 0.0
+vwapDistAtr = atr > 0 and not na(vwapValue) ? (close - vwapValue) / atr : 0.0
+
+// Prior completed daily levels. lookahead_on is safe here because expressions
+// explicitly reference [1], i.e. the prior completed daily candle.
+priorDayHigh = request.security(syminfo.tickerid, "D", high[1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+priorDayLow  = request.security(syminfo.tickerid, "D", low[1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+
+// ─── Regime classification ───────────────────────────────────────────────────
+trendRegime = adx >= trendAdx and emaMid != 0 and math.abs(emaMid - emaSlow) / emaMid > 0.00015
+rangeRegime = not trendRegime
+volOk = not na(volRatio) and volRatio >= minVolRatio and volRatio <= maxVolRatio
+ready = not na(atrSlow) and not na(vwapValue) and not na(adx) and bar_index > slowAtrLen + 20
+
+// ─── Trend continuation score ─────────────────────────────────────────────────
+float trendScore = 0.0
+trendScore += emaFast > emaMid ? 0.40 : -0.40
+trendScore += emaMid > emaSlow ? 0.70 : -0.70
+trendScore += ret3 > 0 ? 0.30 : -0.30
+trendScore += ret6 > 0 ? 0.25 : -0.25
+trendScore += ret12 > 0 ? 0.65 : -0.65
+trendScore += diPlus > diMinus ? 0.35 : -0.35
+trendScore += useVwapFilter ? (close > vwapValue ? 0.45 : -0.45) : 0.0
+trendScore += useOpeningRange and openingReady ? (close > openingHigh ? 0.75 : close < openingLow ? -0.75 : 0.0) : 0.0
+trendScore += close > priorDayHigh ? 0.30 : close < priorDayLow ? -0.30 : 0.0
+
+// ─── Range / mean-reversion score ─────────────────────────────────────────────
+// Only active in a non-trending regime. Extreme VWAP displacement and RSI
+// exhaustion are used as a fade hypothesis, calibrated on multi-year data.
+float rangeScore = 0.0
+rangeScore += vwapDistAtr < -0.90 ? 0.60 : vwapDistAtr > 0.90 ? -0.60 : 0.0
+rangeScore += rsi < 32 ? 1.10 : rsi > 68 ? -1.10 : 0.0
+rangeScore += close > emaFast ? 0.20 : -0.20
+rangeScore += diPlus > diMinus ? 0.15 : -0.15
+
+rawScore = trendRegime ? trendScore : rangeScore
+scoreConfidence = 1.0 / (1.0 + math.exp(-math.min(8.0, math.max(-8.0, math.abs(rawScore) * 0.65))))
+longSignal = rawScore >= minScore and scoreConfidence >= minConfidence
+shortSignal = rawScore <= -minScore and scoreConfidence >= minConfidence
+
+// Avoid entries when the market is stretched by an extreme volatility shock.
+tradeAllowed = ready and volOk and inEntry and barstate.isconfirmed
+canEnter = strategy.position_size == 0 and tradeAllowed
+enterLong = canEnter and longSignal
+enterShort = canEnter and shortSignal
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+// Entry orders are submitted at the signal bar close and normally fill at the
+// next bar open. Brackets are based on signal-bar ATR; this is explicit and
+// avoids pretending the next-open fill was known at signal time.
+tpTicks = math.max(1, int(math.round(tpAtr * atr / syminfo.mintick)))
+slTicks = math.max(1, int(math.round(slAtr * atr / syminfo.mintick)))
+
+if enterLong
+    strategy.entry("Long", strategy.long, comment="LONG score=" + str.tostring(rawScore, "#.##"))
+    strategy.exit("Long bracket", "Long", profit=tpTicks, loss=slTicks)
+if enterShort
+    strategy.entry("Short", strategy.short, comment="SHORT score=" + str.tostring(rawScore, "#.##"))
+    strategy.exit("Short bracket", "Short", profit=tpTicks, loss=slTicks)
+
+if strategy.position_size != 0
+    heldBars = bar_index - strategy.opentrades.entry_bar_index(0)
+    if heldBars >= maxHoldBars
+        strategy.close_all(comment="Max hold")
+    if inFlat
+        strategy.close_all(comment="Session flatten")
+
+// ─── Visuals ─────────────────────────────────────────────────────────────────
+plot(emaMid, "EMA 21", color=color.new(color.orange, 15), linewidth=1)
+plot(vwapValue, "Session VWAP", color=color.new(color.aqua, 0), linewidth=2)
+plot(openingReady ? openingHigh : na, "Opening range high", color=color.new(color.green, 55), style=plot.style_linebr)
+plot(openingReady ? openingLow : na, "Opening range low", color=color.new(color.red, 55), style=plot.style_linebr)
+plotshape(showSignals and enterLong, title="Long", style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.small, text="LONG")
+plotshape(showSignals and enterShort, title="Short", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, text="SHORT")
+bgcolor(strategy.position_size > 0 ? color.new(color.green, 93) : strategy.position_size < 0 ? color.new(color.red, 93) : na)
+
+// Data-window outputs for external comparison / alert construction.
+plot(rawScore, "Directional score (not probability)", display=display.data_window)
+plot(scoreConfidence, "Score confidence proxy (not calibrated)", display=display.data_window)
+plot(volRatio, "ATR / slow ATR", display=display.data_window)
+
+alertcondition(enterLong, "SPX V2 LONG", "SPX V2 long setup")
+alertcondition(enterShort, "SPX V2 SHORT", "SPX V2 short setup")
+
+// ─── HUD ─────────────────────────────────────────────────────────────────────
+var table hud = table.new(position.top_right, 2, 9, bgcolor=color.new(color.black, 15), border_color=color.new(color.gray, 65), border_width=1)
+if showHud and barstate.islast
+    wr = strategy.closedtrades > 0 ? strategy.wintrades / strategy.closedtrades * 100.0 : na
+    pf = strategy.grossloss < 0 ? strategy.grossprofit / math.abs(strategy.grossloss) : na
+    directionText = rawScore >= minScore ? "LONG BIAS" : rawScore <= -minScore ? "SHORT BIAS" : "NEUTRAL"
+    stateText = not ready ? "Warming up" : not volOk ? "Volatility filter" : not inEntry ? "Outside entry window" : "Active"
+    table.cell(hud, 0, 0, "SPX Adaptive v2", text_color=color.white, bgcolor=color.new(color.blue, 65))
+    table.cell(hud, 1, 0, timeframe.period + "m", text_color=color.white, bgcolor=color.new(color.blue, 65))
+    table.cell(hud, 0, 1, "Regime", text_color=color.silver)
+    table.cell(hud, 1, 1, trendRegime ? "TREND" : "RANGE", text_color=trendRegime ? color.aqua : color.orange)
+    table.cell(hud, 0, 2, "Directional score", text_color=color.silver)
+    table.cell(hud, 1, 2, str.tostring(rawScore, "#.##"), text_color=rawScore >= 0 ? color.lime : color.red)
+    table.cell(hud, 0, 3, "Signal", text_color=color.silver)
+    table.cell(hud, 1, 3, directionText, text_color=longSignal ? color.lime : shortSignal ? color.red : color.silver)
+    table.cell(hud, 0, 4, "Score proxy", text_color=color.silver)
+    table.cell(hud, 1, 4, str.tostring(scoreConfidence * 100.0, "#.0") + "% (uncalibrated)", text_color=color.white)
+    table.cell(hud, 0, 5, "ADX / ATR ratio", text_color=color.silver)
+    table.cell(hud, 1, 5, str.tostring(adx, "#.0") + " / " + str.tostring(volRatio, "#.00"), text_color=color.white)
+    table.cell(hud, 0, 6, "Trading status", text_color=color.silver)
+    table.cell(hud, 1, 6, stateText, text_color=stateText == "Active" ? color.lime : color.orange)
+    table.cell(hud, 0, 7, "Net P&L / trades", text_color=color.silver)
+    table.cell(hud, 1, 7, str.tostring(strategy.netprofit, "#.##") + " / " + str.tostring(strategy.closedtrades), text_color=strategy.netprofit >= 0 ? color.lime : color.red)
+    table.cell(hud, 0, 8, "Win rate / PF", text_color=color.silver)
+    table.cell(hud, 1, 8, (na(wr) ? "n/a" : str.tostring(wr, "#.0") + "%") + " / " + (na(pf) ? "n/a" : str.tostring(pf, "#.00")), text_color=color.white)
