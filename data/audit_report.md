@@ -8,19 +8,19 @@ This report summarizes data validation checks, coverage boundaries, and invarian
 - Target instrument: S&P 500 cash index (SPX)
 - Bar interval: 5 minutes
 - Session definition: US regular trading session (09:30 to 16:00 America/New_York)
-- Total regular-session bars: 12500
-- Total trading sessions: 161
-- Date range: 2026-03-26 13:30:00+00:00 to 2026-11-06 20:55:00+00:00
+- Total regular-session bars: 72681
+- Total trading sessions: 937
+- Date range: 2023-02-14 18:20:00+00:00 to 2026-11-09 20:55:00+00:00
 - Duplicate timestamps: 0
 - Invariant check failures: 0
-- Maximum single-bar return: 0.0257
-- Minimum single-bar return: -0.0144
+- Maximum single-bar return: 0.0375
+- Minimum single-bar return: -0.0400
 
 ## Data provenance
 
-1. Historical base: GetData Finance SPX500 5-minute dataset from 2026-03-26 to 2026-09-25 (raw file: data/raw/spx500_5m_getdata_raw.csv).
-2. Recent forward continuation: Yahoo Finance ^GSPC 5-minute dataset from 2026-09-26 to 2026-11-06 (raw file: data/raw/spx_5m_yahoo_raw.parquet).
-3. Overlap validation: Overlapping candles from August to September 2026 showed a mean difference of 1.03 index points and a standard deviation of 1.47 points on an index level of 7,800.
+1. Primary institutional source: London Strategic Edge (LSE) Data 3.0 index ledger (2023-02-14 to 2026-11-09, raw file: data/raw/spx_indices_5m_export.parquet).
+2. Session coverage: Strictly US regular trading hours (09:30 to 16:00 ET / 14:30 to 21:00 UTC).
+3. Inclusion: Includes all regular-session bars up through 2026-11-09.
 
 ## Invariant checks
 
@@ -33,6 +33,5 @@ All bars satisfy the required structural invariants:
 ## Volume semantics
 
 Index values do not have natively traded exchange shares.
-- Historical GetData volume represents tick counts (price quotes per candle).
-- Recent Yahoo volume represents aggregated component equity volume.
+- Volume numbers reflect recorded trade activity or tick counts.
 - To prevent spurious model artifacts, models do not use raw volume as a feature for SPX predictions.

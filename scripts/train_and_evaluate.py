@@ -86,7 +86,7 @@ def main():
     print("Training LSTM multi-task model...")
     seq_len = 60
     lstm_model = LSTMMultiTaskForecaster(sequence_length=seq_len, hidden_size=64, num_layers=1, lr=0.001)
-    lstm_model.fit(X_train, y_train, feature_cols=feature_cols, batch_size=128, epochs=15)
+    lstm_model.fit(X_train, y_train, feature_cols=feature_cols, batch_size=256, epochs=5)
 
     # For LSTM sequence prediction, input sequence requires seq_len trailing bars
     val_preds_lstm = lstm_model.predict(X_val)

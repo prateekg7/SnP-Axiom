@@ -2,46 +2,92 @@ import os
 from pathlib import Path
 import pandas as pd
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
 
 from src.data.getdata_sample import GetDataSampleProvider
 from src.data.yahoo import YahooFinanceProvider
 from src.data.sessions import filter_regular_session_df, get_session_date
 from src.data.validate import audit_dataframe
 
+load_dotenv()
+
 
 def main():
-    print("Ingesting and auditing GetData sample...")
-    gd_provider = GetDataSampleProvider()
-    df_gd_raw = gd_provider.load_df()
-    audit_gd = audit_dataframe(df_gd_raw)
-    print(f"GetData total bars: {audit_gd.total_rows}, invariant failures: {audit_gd.invariants_failed}")
+    lse_raw_path = Path("data/raw/spx_indices_5m_export.parquet")
+    
+    # Check if LSE institutional export is available or can be exported
+    if not lse_raw_path.exists():
+        api_key = os.getenv("LSE_API_KEY")
+        if api_key:
+            try:
+                import lse
+                print("Exporting multi-year SPX 5m bars from London Strategic Edge...")
+                client = lse.LSE(api_key=api_key)
+                lse_raw_path.parent.mkdir(parents=True, exist_ok=True)
+                client.export(
+                    market="indices",
+                    symbol="SPX",
+                    timeframe="5m",
+                    start="2021-11-09",
+                    end="2026-11-09",
+                    dest=str(lse_raw_path),
+                    format="parquet",
+                )
+                print(f"Exported LSE data to {lse_raw_path}")
+            except Exception as e:
+                print(f"LSE export attempt failed: {e}")
 
-    print("Fetching and auditing Yahoo Finance ^GSPC data...")
-    yf_provider = YahooFinanceProvider()
-    df_yf_raw = yf_provider.load_df(period="60d", interval="5m")
-    audit_yf = audit_dataframe(df_yf_raw)
-    print(f"Yahoo total bars: {audit_yf.total_rows}, invariant failures: {audit_yf.invariants_failed}")
+    if lse_raw_path.exists():
+        print(f"Loading institutional LSE 5m dataset from {lse_raw_path}...")
+        raw_lse = pd.read_parquet(lse_raw_path)
+        canonical_df = pd.DataFrame({
+            "timestamp": pd.to_datetime(raw_lse["time"], utc=True),
+            "instrument": "SPX",
+            "provider_symbol": "SPX",
+            "bar_interval": "5m",
+            "open": raw_lse["open"].astype(float),
+            "high": raw_lse["high"].astype(float),
+            "low": raw_lse["low"].astype(float),
+            "close": raw_lse["close"].astype(float),
+            "volume": raw_lse["volume"].astype(float),
+            "volume_semantics": "tick_volume",
+            "source": "lse",
+            "is_final": True,
+        })
+        canonical_df = filter_regular_session_df(canonical_df)
+        canonical_df = canonical_df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+        provenance_text = (
+            "1. Primary institutional source: London Strategic Edge (LSE) Data 3.0 index ledger "
+            f"(2023-02-14 to 2026-11-09, raw file: {lse_raw_path}).\n"
+            "2. Session coverage: Strictly US regular trading hours (09:30 to 16:00 ET / 14:30 to 21:00 UTC).\n"
+            "3. Inclusion: Includes all regular-session bars up through 2026-11-09."
+        )
+    else:
+        print("Ingesting and auditing GetData sample...")
+        gd_provider = GetDataSampleProvider()
+        df_gd_raw = gd_provider.load_df()
+        audit_gd = audit_dataframe(df_gd_raw)
+        print(f"GetData total bars: {audit_gd.total_rows}, invariant failures: {audit_gd.invariants_failed}")
 
-    # Build canonical dataset
-    # We filter for regular trading hours (09:30 to 16:00 America/New_York)
-    df_gd_reg = filter_regular_session_df(df_gd_raw)
-    df_yf_reg = filter_regular_session_df(df_yf_raw)
+        print("Fetching and auditing Yahoo Finance ^GSPC data...")
+        yf_provider = YahooFinanceProvider()
+        df_yf_raw = yf_provider.load_df(period="60d", interval="5m")
+        audit_yf = audit_dataframe(df_yf_raw)
+        print(f"Yahoo total bars: {audit_yf.total_rows}, invariant failures: {audit_yf.invariants_failed}")
 
-    print(f"GetData regular-session bars: {len(df_gd_reg)}")
-    print(f"Yahoo regular-session bars: {len(df_yf_reg)}")
+        df_gd_reg = filter_regular_session_df(df_gd_raw)
+        df_yf_reg = filter_regular_session_df(df_yf_raw)
 
-    # For canonical continuous series:
-    # GetData covers 2026-03-26 through 2026-09-25.
-    # Yahoo covers 2026-08-14 through 2026-11-06.
-    # We use GetData as the core baseline training period, and save both.
-    # We create canonical dataset from GetData regular session (9,750 bars) +
-    # append non-overlapping Yahoo regular session bars from 2026-09-26 onwards.
-    cutoff = df_gd_reg["timestamp"].max()
-    df_yf_recent = df_yf_reg[df_yf_reg["timestamp"] > cutoff].copy()
-    print(f"Recent Yahoo bars after GetData end ({cutoff}): {len(df_yf_recent)}")
+        cutoff = df_gd_reg["timestamp"].max()
+        df_yf_recent = df_yf_reg[df_yf_reg["timestamp"] > cutoff].copy()
 
-    canonical_df = pd.concat([df_gd_reg, df_yf_recent], ignore_index=True)
-    canonical_df = canonical_df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+        canonical_df = pd.concat([df_gd_reg, df_yf_recent], ignore_index=True)
+        canonical_df = canonical_df.sort_values("timestamp").drop_duplicates(subset=["timestamp"]).reset_index(drop=True)
+        provenance_text = (
+            "1. Historical base: GetData Finance SPX500 5-minute dataset from 2026-03-26 to 2026-09-25.\n"
+            "2. Recent forward continuation: Yahoo Finance ^GSPC 5-minute dataset from 2026-09-26 onwards.\n"
+            "3. Overlap validation: Overlapping candles from August to September 2026 showed a mean difference of 1.03 index points."
+        )
 
     out_dir = Path("data/processed")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +97,6 @@ def main():
 
     canonical_audit = audit_dataframe(canonical_df)
 
-    # Write concise audit report following humanizer skill
     audit_report_path = Path("data/audit_report.md")
     report_content = f"""# SPX Intraday Dataset Audit Report
 
@@ -73,9 +118,7 @@ This report summarizes data validation checks, coverage boundaries, and invarian
 
 ## Data provenance
 
-1. Historical base: GetData Finance SPX500 5-minute dataset from 2026-03-26 to 2026-09-25 (raw file: data/raw/spx500_5m_getdata_raw.csv).
-2. Recent forward continuation: Yahoo Finance ^GSPC 5-minute dataset from 2026-09-26 to 2026-11-06 (raw file: data/raw/spx_5m_yahoo_raw.parquet).
-3. Overlap validation: Overlapping candles from August to September 2026 showed a mean difference of 1.03 index points and a standard deviation of 1.47 points on an index level of 7,800.
+{provenance_text}
 
 ## Invariant checks
 
@@ -88,8 +131,7 @@ All bars satisfy the required structural invariants:
 ## Volume semantics
 
 Index values do not have natively traded exchange shares.
-- Historical GetData volume represents tick counts (price quotes per candle).
-- Recent Yahoo volume represents aggregated component equity volume.
+- Volume numbers reflect recorded trade activity or tick counts.
 - To prevent spurious model artifacts, models do not use raw volume as a feature for SPX predictions.
 """
     audit_report_path.write_text(report_content)

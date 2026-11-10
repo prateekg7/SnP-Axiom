@@ -289,3 +289,4 @@ if show_hud and barstate.islast
     
     table.cell(hud, 0, 7, "+3.0 pt Touch Prob", text_color=color.new(#94a3b8, 0), text_size=size.small)
     table.cell(hud, 1, 7, str.tostring(cal_p_touch * 100.0, "#.#") + "%", text_color=cal_p_touch >= min_touch_prob ? color.green : color.white, text_size=size.small)
+
