@@ -39,6 +39,7 @@ Thumbs.db
 .idea/
 .hallmark/
 .agents/
+.obsidian/
 skills-lock.json
 
 # Secrets

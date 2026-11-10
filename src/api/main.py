@@ -118,6 +118,7 @@ def init_live_session():
     """Initialize today's live session by sequentially executing all completed 5m bars since market open."""
     global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache
     load_resources()
+    forecast_history_cache.clear()
 
     # Reset live tracking state to start fresh from 0 for today's market session
     live_directional_matrix = {
@@ -173,6 +174,17 @@ def init_live_session():
                         })
         except Exception as e:
             print(f"[init_live_session] LSE fetch error: {e}")
+
+    # Fallback to canonical dataset session slice if provider is unreachable
+    if not today_candles and DATA_PATH.exists():
+        raw_canonical = pd.read_parquet(DATA_PATH)
+        raw_canonical["timestamp"] = pd.to_datetime(raw_canonical["timestamp"], utc=True)
+        session_slice = raw_canonical[
+            raw_canonical["timestamp"] >= pd.to_datetime("2026-11-09 14:00:00+00:00", utc=True)
+        ]
+        if not session_slice.empty:
+            for _, row in session_slice.iterrows():
+                today_candles.append(row.to_dict())
 
     today_candles = sorted(today_candles, key=lambda x: x["timestamp"])
 
@@ -757,36 +769,49 @@ async def manual_tick(simulate: bool = False):
 
 
 @app.post("/api/live/reset")
-async def reset_live_session():
-    """Reset live confusion matrix to 0 and paper trading engine to flat."""
+async def reset_live_session(retest: bool = False):
+    """Reset live confusion matrix to 0 and paper trading engine to flat.
+    If retest=True, immediately re-runs the live session across completed bars using SPX Adaptive v2.
+    """
     global live_directional_matrix, live_paper_engine, pending_forecast
-    live_directional_matrix = {
-        "name": "Live Trading Session",
-        "tag": "Dynamic Session",
-        "TP": 0,
-        "FP": 0,
-        "FN": 0,
-        "TN": 0,
-        "total": 0,
-        "accuracy_pct": 0.0,
-        "precision_pct": 0.0,
-        "recall_pct": 0.0,
-        "f1_score": 0.0,
-        "note": "0 completed bars evaluated in live session (+1 every 5 min)",
-    }
-    live_paper_engine = PaperTradingEngine(
-        synthetic_point_value=1.0,
-        cost_per_side_points=0.15,
-        slippage_points=0.0,
-        max_units=1.0,
-        take_profit_points=3.0,
-        stop_loss_points=1.5,
-        max_bars_held=6,
-    )
-    if candles_cache is not None and not candles_cache.empty:
-        pending_forecast = _generate_forecast_for_window(candles_cache, candles_cache.iloc[-1], status="PENDING")
+    if retest:
+        init_live_session()
+    else:
+        live_directional_matrix = {
+            "name": "Live Session (Dynamic)",
+            "tag": "Dynamic Session",
+            "TP": 0,
+            "FP": 0,
+            "FN": 0,
+            "TN": 0,
+            "total": 0,
+            "accuracy_pct": 0.0,
+            "precision_pct": 0.0,
+            "recall_pct": 0.0,
+            "f1_score": 0.0,
+            "note": "0 completed bars evaluated in live session (+1 every 5 min)",
+        }
+        live_paper_engine = PaperTradingEngine(
+            synthetic_point_value=1.0,
+            cost_per_side_points=0.15,
+            slippage_points=0.0,
+            max_units=1.0,
+            take_profit_points=3.0,
+            stop_loss_points=1.5,
+            max_bars_held=6,
+        )
+        if candles_cache is not None and not candles_cache.empty:
+            pending_forecast = _generate_forecast_for_window(candles_cache, candles_cache.iloc[-1], status="PENDING")
     await broadcast_tick()
     return {"status": "reset", "matrix": live_directional_matrix, "performance": get_performance()}
+
+
+@app.post("/api/live/retest")
+async def run_live_retest():
+    """Reset to 0 and live test SPX Adaptive v2 across all completed bars."""
+    init_live_session()
+    await broadcast_tick()
+    return {"status": "retested", "matrix": live_directional_matrix, "performance": get_performance()}
 
 
 @app.websocket("/ws/market")
