@@ -114,6 +114,61 @@ def load_resources():
                     forecast_history_cache.append(json.loads(line))
 
 
+def fetch_live_session_candles() -> List[Dict[str, Any]]:
+    """Fetch live 5m candles for today's active session from Yahoo Finance or LSE."""
+    # 1. Real-time 5-minute candles from Yahoo Finance (^GSPC)
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker("^GSPC")
+        df = ticker.history(period="2d", interval="5m")
+        today_ny = pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
+        today_df = df[df.index.strftime("%Y-%m-%d") == today_ny]
+        if not today_df.empty:
+            candles = []
+            for idx, row in today_df.iterrows():
+                candles.append({
+                    "timestamp": pd.to_datetime(idx, utc=True),
+                    "open": float(row["Open"]),
+                    "high": float(row["High"]),
+                    "low": float(row["Low"]),
+                    "close": float(row["Close"]),
+                    "volume": float(row["Volume"]) if pd.notnull(row["Volume"]) else 0.0,
+                    "provider_symbol": "^GSPC",
+                    "source": "yahoo_finance",
+                })
+            if candles:
+                return candles
+    except Exception as e:
+        print(f"[fetch_live_session_candles] yfinance fetch error: {e}")
+
+    # 2. Fallback to LSE if available
+    if lse_provider.is_available():
+        try:
+            lse_candles = lse_provider.get_historical_candles(limit=50)
+            if lse_candles:
+                today_ny = pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
+                candles = []
+                for c in lse_candles:
+                    c_ts = pd.to_datetime(c.timestamp, utc=True)
+                    if c_ts.strftime("%Y-%m-%d") == today_ny:
+                        candles.append({
+                            "timestamp": c_ts,
+                            "open": float(c.open),
+                            "high": float(c.high),
+                            "low": float(c.low),
+                            "close": float(c.close),
+                            "volume": float(c.volume) if c.volume is not None else 0.0,
+                            "provider_symbol": c.provider_symbol,
+                            "source": "lse",
+                        })
+                if candles:
+                    return candles
+        except Exception as e:
+            print(f"[fetch_live_session_candles] LSE fetch error: {e}")
+
+    return []
+
+
 def init_live_session():
     """Initialize today's live session by sequentially executing all completed 5m bars since market open."""
     global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache
@@ -146,42 +201,23 @@ def init_live_session():
         max_bars_held=6,
     )
 
-    # Base candles cache contains historical data prior to today's date
-    cutoff_date = pd.to_datetime("2026-11-09 00:00:00+00:00", utc=True)
+    # Base candles cache contains historical data prior to today's date in New York
+    today_ny_date = pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
+    cutoff_date = pd.to_datetime(f"{today_ny_date} 00:00:00-05:00", utc=True)
+
     if DATA_PATH.exists():
         raw_canonical = pd.read_parquet(DATA_PATH)
         raw_canonical["timestamp"] = pd.to_datetime(raw_canonical["timestamp"], utc=True)
         candles_cache = raw_canonical[raw_canonical["timestamp"] < cutoff_date].copy()
 
-    # Fetch today's completed 5m candles from LSE provider
-    today_candles = []
-    if lse_provider.is_available():
-        try:
-            lse_candles = lse_provider.get_historical_candles(limit=40)
-            if lse_candles:
-                for c in lse_candles:
-                    c_ts = pd.to_datetime(c.timestamp, utc=True)
-                    if c_ts >= pd.to_datetime("2026-11-09 14:00:00+00:00", utc=True):
-                        today_candles.append({
-                            "timestamp": c_ts,
-                            "open": float(c.open),
-                            "high": float(c.high),
-                            "low": float(c.low),
-                            "close": float(c.close),
-                            "volume": float(c.volume) if c.volume is not None else 0.0,
-                            "provider_symbol": c.provider_symbol,
-                            "source": "lse",
-                        })
-        except Exception as e:
-            print(f"[init_live_session] LSE fetch error: {e}")
+    # Fetch today's live completed 5m candles
+    today_candles = fetch_live_session_candles()
 
-    # Fallback to canonical dataset session slice if provider is unreachable
+    # Fallback to canonical dataset session slice if live providers are unreachable
     if not today_candles and DATA_PATH.exists():
         raw_canonical = pd.read_parquet(DATA_PATH)
         raw_canonical["timestamp"] = pd.to_datetime(raw_canonical["timestamp"], utc=True)
-        session_slice = raw_canonical[
-            raw_canonical["timestamp"] >= pd.to_datetime("2026-11-09 14:00:00+00:00", utc=True)
-        ]
+        session_slice = raw_canonical[raw_canonical["timestamp"] >= cutoff_date]
         if not session_slice.empty:
             for _, row in session_slice.iterrows():
                 today_candles.append(row.to_dict())
@@ -399,28 +435,18 @@ def process_new_candle(candle_dict: Dict[str, Any]):
 
 
 async def live_market_engine_loop():
-    """Background worker polling LSE every 5s to catch real completed 5m bars."""
+    """Background worker polling every 5s to catch real completed 5m bars during active sessions."""
     while True:
         try:
             await asyncio.sleep(5.0)
-            if lse_provider.is_available() and candles_cache is not None and not candles_cache.empty:
-                lse_candles = lse_provider.get_historical_candles(limit=10)
-                if lse_candles:
+            if candles_cache is not None and not candles_cache.empty:
+                live_candles = fetch_live_session_candles()
+                if live_candles:
                     last_known_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
-                    new_candles = []
-                    for c in lse_candles:
-                        c_ts = pd.to_datetime(c.timestamp, utc=True)
-                        if c_ts > last_known_ts:
-                            new_candles.append({
-                                "timestamp": c_ts,
-                                "open": float(c.open),
-                                "high": float(c.high),
-                                "low": float(c.low),
-                                "close": float(c.close),
-                                "volume": float(c.volume) if c.volume is not None else 0.0,
-                                "provider_symbol": c.provider_symbol,
-                                "source": "lse",
-                            })
+                    new_candles = [
+                        c for c in live_candles
+                        if pd.to_datetime(c["timestamp"], utc=True) > last_known_ts
+                    ]
                     new_candles = sorted(new_candles, key=lambda x: x["timestamp"])
                     for candle_dict in new_candles:
                         process_new_candle(candle_dict)
@@ -702,29 +728,19 @@ def get_evaluation_stats():
 
 @app.post("/api/market/tick")
 async def manual_tick(simulate: bool = False):
-    """Advance by one candle: poll real LSE or simulate next 5m candle with realistic drift."""
+    """Advance by one candle: poll real live candles or simulate next 5m candle with realistic drift."""
     global candles_cache
     load_resources()
     advanced = False
 
-    if not simulate and lse_provider.is_available() and candles_cache is not None and not candles_cache.empty:
-        lse_candles = lse_provider.get_historical_candles(limit=5)
-        if lse_candles:
+    if not simulate and candles_cache is not None and not candles_cache.empty:
+        live_candles = fetch_live_session_candles()
+        if live_candles:
             last_known_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
-            for c in lse_candles:
-                c_ts = pd.to_datetime(c.timestamp, utc=True)
+            for c in live_candles:
+                c_ts = pd.to_datetime(c["timestamp"], utc=True)
                 if c_ts > last_known_ts:
-                    candle_dict = {
-                        "timestamp": c.timestamp,
-                        "open": float(c.open),
-                        "high": float(c.high),
-                        "low": float(c.low),
-                        "close": float(c.close),
-                        "volume": float(c.volume) if c.volume is not None else 0.0,
-                        "provider_symbol": c.provider_symbol,
-                        "source": "lse",
-                    }
-                    process_new_candle(candle_dict)
+                    process_new_candle(c)
                     advanced = True
                     break
 
