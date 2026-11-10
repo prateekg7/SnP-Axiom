@@ -58,3 +58,4 @@ def test_spx_v2_short_window_fallback():
     assert res["action"] == "HOLD"
     assert res["raw_score"] == 0.0
     assert "Warming up" in res["decision_reason"]
+

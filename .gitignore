@@ -10,6 +10,8 @@ data/raw/
 data/processed/
 data/labels/
 !data/README.md
+datawhole.csv
+*.csv
 
 # Python
 __pycache__/

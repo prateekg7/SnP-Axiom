@@ -263,3 +263,4 @@ class SPXAdaptiveAIv2Model:
             "sl_points": round(sl_pts, 2),
             "decision_reason": reason,
         }
+
