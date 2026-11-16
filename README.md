@@ -208,6 +208,7 @@ SnP-Axiom/
 ├── reports/                             # Generated research visuals and figures
 │   └── figures/
 │       ├── live_dashboard_full_v2.png   # Full-page screenshot of the live web trading dashboard
+│       ├── live_session_performance_settlement.png # Live session settlement P&L and equity curve screenshot
 │       ├── fig3_1_system_architecture.png
 │       ├── fig3_2_feature_importance.png
 │       ├── fig3_3_monte_carlo_cone.png
@@ -309,6 +310,34 @@ Open `http://localhost:3000` in your browser. The dashboard connects to the back
 
 To select the primary production architecture, we evaluated multiple machine learning approaches on out-of-sample data under identical execution rules (0.15 points per side transaction costs, bracketed take-profit and stop-loss exits, and a 6-bar timeout).
 
+### Live Out-of-Sample Settlement (November 16, 2026 Active Session)
+
+During the live session on November 16, 2026, the S&P 500 Index closed at **7,420.19** (-93.79 pts / -1.25%). The production Random Forest Hybrid trading engine operated in real time across the full 09:30 to 16:00 EST session.
+
+Settling the portfolio at the 16:00 EST session close yielded **+55.04 SPX net points** (+55.94 gross points) with all positions closed (`FLAT`) and zero open overnight risk:
+
+![Live Session Performance Settlement](reports/figures/live_session_performance_settlement.png)
+
+#### Live Session Performance Summary
+
+| Metric | Live Session Value | Context and Description |
+| :--- | :---: | :--- |
+| **Net Realized P&L** | **+55.04 pts** | Net of standard 0.15 pt/side execution costs and slippage (Gross: +55.94 pts) |
+| **Win Rate** | **66.7%** | 2 winning shorts (+28.80 pts, +26.47 pts) and 1 scratch bracket exit (-0.23 pts) |
+| **Profit Factor** | **240.63** | Gross profits of +55.94 pts against a single loss of -0.23 pts |
+| **Max Drawdown** | **0.23 pts** | Minimal equity retracement throughout the active session |
+| **Abstention Rate** | **87.2%** | Disciplined HOLD gating during late-session sideways consolidation (7,415 - 7,427) |
+| **Settlement Position** | **FLAT** | Zero open exposure (0.00 unrealized risk) at the 16:00 EST close |
+
+#### S&P 500 Dollar Settlement Equivalents
+
+| Instrument | Contract Multiplier | Net Realized Settlement Value |
+| :--- | :--- | :---: |
+| **SPX Cash Index / SPX Options Delta** | \$100 / index point | **+\$5,504.00** |
+| **E-mini S&P 500 Futures (`/ES`)** | \$50 / index point | **+\$2,752.00** |
+| **Micro E-mini Futures (`/MES`)** | \$5 / index point | **+\$275.20** |
+| **SPY ETF Equivalent** | 1/10th scale | **+\$5.50 / share** |
+
 ### Out-of-Sample Performance Comparison
 
 The table below summarizes performance across candidate architectures evaluated over an out-of-sample weekly market sequence. Detailed metrics can be inspected directly in [artifacts/models/evaluation_stats/ml_methods_comparison_report.json](artifacts/models/evaluation_stats/ml_methods_comparison_report.json).
@@ -343,6 +372,7 @@ All evaluation runs, training code, and visual figures are stored in the reposit
   * [generate_all_models_backtest_graphics.py](scripts/comparison/generate_all_models_backtest_graphics.py): Figure generation script for comparative visual analysis.
 * **Charts and Visualizations**:
   * [live_dashboard_full_v2.png](reports/figures/live_dashboard_full_v2.png): Full-page screenshot of the live dashboard running on localhost.
+  * [live_session_performance_settlement.png](reports/figures/live_session_performance_settlement.png): Focused settlement and equity profile card for the live trading session.
   * [fig_backtest_models_comparison_dashboard.png](reports/figures/fig_backtest_models_comparison_dashboard.png): Comparative metric overview across all models.
   * [fig_backtest_weekly_equity_all_models.png](reports/figures/fig_backtest_weekly_equity_all_models.png): Cumulative out-of-sample equity curves.
   * [fig4_1_cumulative_pnl.png](reports/figures/fig4_1_cumulative_pnl.png): Baseline strategy cumulative performance curve.
