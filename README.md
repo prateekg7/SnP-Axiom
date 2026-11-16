@@ -56,7 +56,7 @@ mindmap
 
 The live paper-trading web interface running on FastAPI (port 8001) and React (port 3000), showing real-time 5-minute candles, the Random Forest Hybrid forward projection, calibrated probabilities, Monte Carlo quantile cone, and paper trade execution:
 
-![SnP-Axiom Live Trading Dashboard](reports/figures/live_dashboard_full.png)
+![SnP-Axiom Live Trading Dashboard](reports/figures/live_dashboard_full_v2.png)
 
 ---
 
@@ -207,7 +207,7 @@ SnP-Axiom/
 │   └── vite.config.js                   # Vite configuration with API and WebSocket proxies
 ├── reports/                             # Generated research visuals and figures
 │   └── figures/
-│       ├── live_dashboard_full.png      # Full-page screenshot of the live web trading dashboard
+│       ├── live_dashboard_full_v2.png   # Full-page screenshot of the live web trading dashboard
 │       ├── fig3_1_system_architecture.png
 │       ├── fig3_2_feature_importance.png
 │       ├── fig3_3_monte_carlo_cone.png
@@ -342,7 +342,7 @@ All evaluation runs, training code, and visual figures are stored in the reposit
   * [export_pine_ml_strategies.py](scripts/comparison/export_pine_ml_strategies.py): Script generating standalone Pine Script files for each model.
   * [generate_all_models_backtest_graphics.py](scripts/comparison/generate_all_models_backtest_graphics.py): Figure generation script for comparative visual analysis.
 * **Charts and Visualizations**:
-  * [live_dashboard_full.png](reports/figures/live_dashboard_full.png): Full-page screenshot of the live dashboard running on localhost.
+  * [live_dashboard_full_v2.png](reports/figures/live_dashboard_full_v2.png): Full-page screenshot of the live dashboard running on localhost.
   * [fig_backtest_models_comparison_dashboard.png](reports/figures/fig_backtest_models_comparison_dashboard.png): Comparative metric overview across all models.
   * [fig_backtest_weekly_equity_all_models.png](reports/figures/fig_backtest_weekly_equity_all_models.png): Cumulative out-of-sample equity curves.
   * [fig4_1_cumulative_pnl.png](reports/figures/fig4_1_cumulative_pnl.png): Baseline strategy cumulative performance curve.

@@ -130,6 +130,300 @@ function computeVWAP(candles) {
   return out;
 }
 
+/**
+ * Native Lightweight Charts Series Primitive for TradingView-style
+ * recurring shaded Support & Resistance zones.
+ */
+class SupportResistancePrimitive {
+  constructor(theme = 'dark') {
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+    this._zones = [];
+    this._theme = theme;
+
+    this._paneViews = [
+      {
+        zOrder: () => 'bottom',
+        renderer: () => ({
+          draw: (target) => {
+            target.useMediaCoordinateSpace((scope) => {
+              const ctx = scope.context;
+              if (!this._chart || !this._series || !this._zones || this._zones.length === 0) return;
+
+              const timeScale = this._chart.timeScale();
+              const mediaWidth = scope.mediaSize.width;
+              const isDark = this._theme === 'dark';
+
+              this._zones.forEach((zone) => {
+                const yTop = this._series.priceToCoordinate(zone.top);
+                const yBottom = this._series.priceToCoordinate(zone.bottom);
+
+                if (yTop === null || yBottom === null) return;
+
+                let x1 = zone.startTime ? timeScale.timeToCoordinate(zone.startTime) : null;
+                let x2 = zone.endTime ? timeScale.timeToCoordinate(zone.endTime) : null;
+
+                if (x1 === null) x1 = 0;
+                if (x2 === null || x2 > mediaWidth) x2 = mediaWidth;
+
+                const minX = Math.min(x1, x2);
+                const maxX = Math.max(x1, x2);
+                const minY = Math.min(yTop, yBottom);
+                const boxHeight = Math.max(2, Math.abs(yBottom - yTop));
+                const boxWidth = Math.max(4, maxX - minX);
+
+                const isRes = zone.type === 'resistance';
+
+                // 1. Shaded area fill (soft translucent wash)
+                ctx.fillStyle = isRes
+                  ? (isDark ? 'rgba(239, 68, 68, 0.17)' : 'rgba(239, 68, 68, 0.12)')
+                  : (isDark ? 'rgba(16, 185, 129, 0.17)' : 'rgba(16, 185, 129, 0.12)');
+                ctx.fillRect(minX, minY, boxWidth, boxHeight);
+
+                // 2. Horizontal boundary border lines
+                ctx.strokeStyle = isRes
+                  ? (isDark ? 'rgba(239, 68, 68, 0.60)' : 'rgba(220, 38, 38, 0.50)')
+                  : (isDark ? 'rgba(16, 185, 129, 0.60)' : 'rgba(5, 150, 105, 0.50)');
+                ctx.lineWidth = 1;
+
+                // Top border
+                ctx.beginPath();
+                ctx.moveTo(minX, minY);
+                ctx.lineTo(maxX, minY);
+                ctx.stroke();
+
+                // Bottom border
+                ctx.beginPath();
+                ctx.moveTo(minX, minY + boxHeight);
+                ctx.lineTo(maxX, minY + boxHeight);
+                ctx.stroke();
+
+                // Left start border
+                ctx.beginPath();
+                ctx.moveTo(minX, minY);
+                ctx.lineTo(minX, minY + boxHeight);
+                ctx.stroke();
+
+                // Right end border if zone broke
+                if (zone.endTime) {
+                  ctx.beginPath();
+                  ctx.moveTo(maxX, minY);
+                  ctx.lineTo(maxX, minY + boxHeight);
+                  ctx.stroke();
+                }
+
+                // 3. Crisp text label inside shaded box
+                if (zone.label && minX < mediaWidth - 40) {
+                  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                  ctx.fillStyle = isRes
+                    ? (isDark ? 'rgba(248, 113, 113, 0.92)' : 'rgba(185, 28, 28, 0.92)')
+                    : (isDark ? 'rgba(52, 211, 153, 0.92)' : 'rgba(4, 120, 87, 0.92)');
+
+                  const labelX = Math.max(minX + 6, 8);
+                  ctx.fillText(zone.label, labelX, minY + Math.min(13, boxHeight - 2));
+                }
+              });
+            });
+          },
+        }),
+      },
+    ];
+  }
+
+  attached(param) {
+    this._chart = param.chart;
+    this._series = param.series;
+    this._requestUpdate = param.requestUpdate;
+  }
+
+  detached() {
+    this._chart = null;
+    this._series = null;
+    this._requestUpdate = null;
+  }
+
+  setZones(zones) {
+    this._zones = zones || [];
+    if (this._requestUpdate) {
+      this._requestUpdate();
+    }
+  }
+
+  setTheme(theme) {
+    this._theme = theme;
+    if (this._requestUpdate) {
+      this._requestUpdate();
+    }
+  }
+
+  updateAllViews() {}
+
+  paneViews() {
+    return this._paneViews;
+  }
+}
+
+/**
+ * Computes multi-timeframe recurring swing support & resistance zones
+ * matching TradingView Supply & Demand boxes.
+ */
+function computeRecurringSRZones(candles, telemetry, atr = 6.0) {
+  if (!candles || candles.length < 10) return [];
+
+  const zones = [];
+  const zoneThickness = Math.max(3.5, (atr || 6.0) * 0.40);
+  const n = candles.length;
+
+  // 1. Detect swing highs & swing lows (window = 3 bars)
+  const lookback = 3;
+  const swingHighs = [];
+  const swingLows = [];
+
+  for (let i = lookback; i < n - lookback; i++) {
+    const cur = candles[i];
+    let isHigh = true;
+    let isLow = true;
+
+    for (let k = 1; k <= lookback; k++) {
+      if (candles[i - k].high >= cur.high || candles[i + k].high > cur.high) {
+        isHigh = false;
+      }
+      if (candles[i - k].low <= cur.low || candles[i + k].low < cur.low) {
+        isLow = false;
+      }
+    }
+
+    if (isHigh) swingHighs.push({ index: i, time: cur.time, price: cur.high });
+    if (isLow) swingLows.push({ index: i, time: cur.time, price: cur.low });
+  }
+
+  // 2. Process Swing Highs -> Resistance Zones
+  swingHighs.forEach((sh) => {
+    const top = sh.price;
+    const bottom = top - zoneThickness;
+    let brokenIndex = null;
+
+    for (let j = sh.index + 1; j < n; j++) {
+      if (candles[j].close > top + 1.5) {
+        brokenIndex = j;
+        break;
+      }
+    }
+
+    const endIndex = brokenIndex !== null ? brokenIndex : n - 1;
+    if (endIndex - sh.index >= 4 || brokenIndex === null) {
+      zones.push({
+        id: `res_${sh.time}`,
+        type: 'resistance',
+        top: parseFloat(top.toFixed(2)),
+        bottom: parseFloat(bottom.toFixed(2)),
+        startTime: sh.time,
+        endTime: brokenIndex !== null ? candles[brokenIndex].time : null,
+        active: brokenIndex === null,
+        label: `Resistance ${top.toFixed(1)}`,
+        touches: 1,
+      });
+    }
+  });
+
+  // 3. Process Swing Lows -> Support Zones
+  swingLows.forEach((sl) => {
+    const bottom = sl.price;
+    const top = bottom + zoneThickness;
+    let brokenIndex = null;
+
+    for (let j = sl.index + 1; j < n; j++) {
+      if (candles[j].close < bottom - 1.5) {
+        brokenIndex = j;
+        break;
+      }
+    }
+
+    const endIndex = brokenIndex !== null ? brokenIndex : n - 1;
+    if (endIndex - sl.index >= 4 || brokenIndex === null) {
+      zones.push({
+        id: `sup_${sl.time}`,
+        type: 'support',
+        top: parseFloat(top.toFixed(2)),
+        bottom: parseFloat(bottom.toFixed(2)),
+        startTime: sl.time,
+        endTime: brokenIndex !== null ? candles[brokenIndex].time : null,
+        active: brokenIndex === null,
+        label: `Support ${bottom.toFixed(1)}`,
+        touches: 1,
+      });
+    }
+  });
+
+  // 4. Cluster overlapping zones to maintain high clarity
+  const filterAndCluster = (zoneList, type) => {
+    const sorted = zoneList
+      .filter((z) => z.type === type)
+      .sort((a, b) => (b.active ? 1 : 0) - (a.active ? 1 : 0) || b.startTime - a.startTime);
+
+    const clustered = [];
+    for (const z of sorted) {
+      const existing = clustered.find(
+        (c) => Math.abs(c.top - z.top) <= zoneThickness * 0.85
+      );
+      if (!existing) {
+        clustered.push(z);
+      } else {
+        existing.touches = (existing.touches || 1) + 1;
+        existing.top = Math.max(existing.top, z.top);
+        existing.bottom = Math.min(existing.bottom, z.bottom);
+        if (!z.endTime) existing.endTime = null;
+      }
+    }
+    return clustered.slice(0, 5); // Keep up to 5 recurring zones per direction
+  };
+
+  const finalRes = filterAndCluster(zones, 'resistance');
+  const finalSup = filterAndCluster(zones, 'support');
+
+  // 5. Always include major institutional anchor levels (PDH & PDL)
+  const pdh = telemetry?.pdh;
+  const pdl = telemetry?.pdl;
+  const firstTime = candles[0]?.time;
+
+  if (pdh && pdh > 0) {
+    const exists = finalRes.some((r) => Math.abs(r.top - pdh) < 3.0);
+    if (!exists) {
+      finalRes.push({
+        id: 'anchor_pdh',
+        type: 'resistance',
+        top: parseFloat(pdh.toFixed(2)),
+        bottom: parseFloat((pdh - zoneThickness).toFixed(2)),
+        startTime: firstTime,
+        endTime: null,
+        active: true,
+        label: `Daily Res ${pdh.toFixed(1)}`,
+        isAnchor: true,
+      });
+    }
+  }
+
+  if (pdl && pdl > 0) {
+    const exists = finalSup.some((s) => Math.abs(s.bottom - pdl) < 3.0);
+    if (!exists) {
+      finalSup.push({
+        id: 'anchor_pdl',
+        type: 'support',
+        top: parseFloat((pdl + zoneThickness).toFixed(2)),
+        bottom: parseFloat(pdl.toFixed(2)),
+        startTime: firstTime,
+        endTime: null,
+        active: true,
+        label: `Daily Sup ${pdl.toFixed(1)}`,
+        isAnchor: true,
+      });
+    }
+  }
+
+  return [...finalRes, ...finalSup];
+}
+
 function createMainSeries(chart, type, colors, theme, basePrice = 7370) {
   if (type === 'bars') {
     return chart.addBarSeries({
@@ -309,6 +603,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
   const vwapSeriesRef = useRef(null);
 
   const priceLinesRef = useRef([]);
+  const srPrimitiveRef = useRef(null);
 
   // States
   const [chartView, setChartView] = useState('candles'); // 'candles' | 'bars' | 'area' | 'baseline'
@@ -436,6 +731,12 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
 
     // Initial Main Price Series (Candles by default)
     const mainSeries = createMainSeries(chart, 'candles', colors, theme);
+    const srPrimitive = new SupportResistancePrimitive(theme);
+    srPrimitiveRef.current = srPrimitive;
+    try {
+      mainSeries.attachPrimitive(srPrimitive);
+    } catch (e) {}
+
     // Initial 30m Forecast Series (matching view type)
     const forecastSeries = createForecastSeries(chart, 'candles', colors, theme);
 
@@ -483,6 +784,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     return () => {
       if (resizeObserver) resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
+      srPrimitiveRef.current = null;
       chart.remove();
     };
   }, []);
@@ -506,6 +808,9 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
         borderColor: colors.borderColor,
       },
     });
+    if (srPrimitiveRef.current) {
+      srPrimitiveRef.current.setTheme(theme);
+    }
   }, [theme, colors]);
 
   // Handle active timeframe range zoom
@@ -581,6 +886,11 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       }
 
       mainSeriesRef.current = createMainSeries(chartRef.current, chartView, colors, theme, basePrice);
+      if (srPrimitiveRef.current && mainSeriesRef.current) {
+        try {
+          mainSeriesRef.current.attachPrimitive(srPrimitiveRef.current);
+        } catch (e) {}
+      }
       forecastSeriesRef.current = createForecastSeries(chartRef.current, chartView, colors, theme, basePrice);
       currentViewTypeRef.current = chartView;
     }
@@ -738,80 +1048,13 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       priceLinesRef.current.push(vwapLine);
     }
 
-    // Visual Multi-Timeframe Support & Resistance Zones
-    if (indicators.srZones && formatted.length > 0 && mainSeriesRef.current) {
-      let highestPrice = -Infinity;
-      let lowestPrice = Infinity;
-      const recentBars = formatted.slice(-78);
-      recentBars.forEach((c) => {
-        if (c.high > highestPrice) highestPrice = c.high;
-        if (c.low < lowestPrice) lowestPrice = c.low;
-      });
-
-      const wRes = forecast?.telemetry?.pdh ? Math.max(forecast.telemetry.pdh, highestPrice) : (highestPrice > 0 ? highestPrice : 7621.78);
-      const wSup = forecast?.telemetry?.pdl ? Math.min(forecast.telemetry.pdl, lowestPrice) : (lowestPrice < Infinity ? lowestPrice : 7499.40);
-
-      const zoneThickness = 5.0;
-
-      if (isFinite(wRes) && wRes > 0) {
-        const resLineTop = mainSeriesRef.current.createPriceLine({
-          price: parseFloat(wRes.toFixed(2)),
-          color: '#ef4444',
-          lineWidth: 2,
-          lineStyle: LineStyle.Solid,
-          axisLabelVisible: true,
-          title: 'Res Zone Top',
-        });
-        const resLineBot = mainSeriesRef.current.createPriceLine({
-          price: parseFloat((wRes - zoneThickness).toFixed(2)),
-          color: 'rgba(239, 68, 68, 0.70)',
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: false,
-          title: 'Res Zone Bot',
-        });
-        priceLinesRef.current.push(resLineTop, resLineBot);
-      }
-
-      if (isFinite(wSup) && wSup > 0) {
-        const supLineTop = mainSeriesRef.current.createPriceLine({
-          price: parseFloat((wSup + zoneThickness).toFixed(2)),
-          color: 'rgba(16, 185, 129, 0.70)',
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: false,
-          title: 'Sup Zone Top',
-        });
-        const supLineBot = mainSeriesRef.current.createPriceLine({
-          price: parseFloat(wSup.toFixed(2)),
-          color: '#10b981',
-          lineWidth: 2,
-          lineStyle: LineStyle.Solid,
-          axisLabelVisible: true,
-          title: 'Sup Zone Bot',
-        });
-        priceLinesRef.current.push(supLineTop, supLineBot);
-      }
-
-      if (forecast?.telemetry?.or_high && forecast?.telemetry?.or_low) {
-        const orHighLine = mainSeriesRef.current.createPriceLine({
-          price: parseFloat(forecast.telemetry.or_high.toFixed(2)),
-          color: '#3b82f6',
-          lineWidth: 1,
-          lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: 'OR High',
-        });
-        const orLowLine = mainSeriesRef.current.createPriceLine({
-          price: parseFloat(forecast.telemetry.or_low.toFixed(2)),
-          color: '#3b82f6',
-          lineWidth: 1,
-          lineStyle: LineStyle.Dotted,
-          axisLabelVisible: false,
-          title: 'OR Low',
-        });
-        priceLinesRef.current.push(orHighLine, orLowLine);
-      }
+    // Visual Recurring Shaded Support & Resistance Zones (TradingView-style shaded boxes)
+    if (indicators.srZones && formatted.length > 0) {
+      const atr = forecast?.telemetry?.atr_pts || 6.0;
+      const recurringZones = computeRecurringSRZones(formatted, forecast?.telemetry, atr);
+      srPrimitiveRef.current?.setZones(recurringZones);
+    } else {
+      srPrimitiveRef.current?.setZones([]);
     }
 
     // Prediction Visualizations on Graph

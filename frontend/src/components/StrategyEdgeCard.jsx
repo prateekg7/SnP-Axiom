@@ -149,6 +149,7 @@ export default function StrategyEdgeCard({ stats }) {
         >
           <Grid horizontal numTicksRows={4} strokeDasharray="3,3" />
           <Bar
+            animate={false}
             dataKey={metric}
             fill={barColor}
             lineCap="round"

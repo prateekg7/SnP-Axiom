@@ -349,6 +349,7 @@ export default function ConfusionMatrixCard({ stats }) {
             >
               <Grid horizontal numTicksRows={4} strokeDasharray="3,3" />
               <Bar
+                animate={false}
                 dataKey="correct"
                 fill="var(--color-up)"
                 lineCap="round"
@@ -357,6 +358,7 @@ export default function ConfusionMatrixCard({ stats }) {
                 valueLabelFormatter={(v) => (v > 0 ? String(v) : "")}
               />
               <Bar
+                animate={false}
                 dataKey="miss"
                 fill="var(--color-down)"
                 lineCap="round"
