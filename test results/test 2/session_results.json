@@ -1,0 +1,90 @@
+{
+  "session_date": "2026-11-16",
+  "closing_price": 7420.19,
+  "session_change_pts": -93.79,
+  "session_change_pct": -1.25,
+  "net_pnl_pts": 55.04,
+  "gross_pnl_pts": 55.94,
+  "total_trades": 3,
+  "win_rate_pct": 66.7,
+  "profit_factor": 240.63,
+  "max_drawdown_pts": 0.23,
+  "abstention_rate_pct": 87.2,
+  "position_at_close": "FLAT",
+  "dollar_settlement": {
+    "spx_cash_options_100x": 5504.0,
+    "emini_futures_es_50x": 2752.0,
+    "micro_emini_mes_5x": 275.2,
+    "spy_etf_share_equiv": 5.5
+  },
+  "trades": [
+    {
+      "id": 1,
+      "entry_time": "14:35",
+      "exit_time": "14:55",
+      "action": "SHORT",
+      "net_pnl": 28.8,
+      "exit": "take_profit"
+    },
+    {
+      "id": 2,
+      "entry_time": "15:05",
+      "exit_time": "15:25",
+      "action": "SHORT",
+      "net_pnl": 26.47,
+      "exit": "take_profit"
+    },
+    {
+      "id": 3,
+      "entry_time": "15:35",
+      "exit_time": "15:45",
+      "action": "SHORT",
+      "net_pnl": -0.23,
+      "exit": "scratch"
+    }
+  ],
+  "all_models_session_backtest": {
+    "Pure Adaptive v2": {
+      "net_pnl": 79.71,
+      "trades": 16,
+      "win_rate": 62.5,
+      "profit_factor": 2.32,
+      "max_dd": 39.82
+    },
+    "HistGradientBoosting": {
+      "net_pnl": 47.51,
+      "trades": 3,
+      "win_rate": 100.0,
+      "profit_factor": 99.99,
+      "max_dd": 0.0
+    },
+    "Random Forest Hybrid": {
+      "net_pnl": 35.84,
+      "trades": 5,
+      "win_rate": 60.0,
+      "profit_factor": 2.61,
+      "max_dd": 20.98
+    },
+    "Support Vector Machine": {
+      "net_pnl": 35.08,
+      "trades": 7,
+      "win_rate": 42.9,
+      "profit_factor": 2.41,
+      "max_dd": 24.83
+    },
+    "Option A LightGBM": {
+      "net_pnl": 21.31,
+      "trades": 8,
+      "win_rate": 62.5,
+      "profit_factor": 1.8,
+      "max_dd": 15.11
+    },
+    "Multilayer Perceptron": {
+      "net_pnl": -6.1,
+      "trades": 5,
+      "win_rate": 40.0,
+      "profit_factor": 0.7,
+      "max_dd": 12.78
+    }
+  }
+}

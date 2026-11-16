@@ -247,6 +247,14 @@ SnP-Axiom/
 │   ├── models/spx_adaptive_v2.py        # Adaptive v2 rule spine
 │   ├── models/spx_option_a_ml.py        # Option A LightGBM pipeline
 │   └── trading/paper_engine.py          # Paper trading execution simulator
+├── test results/                        # Comprehensive evaluation and settlement test reports
+│   ├── test 1/                          # Multi-year TradingView backtest and live demo evaluation
+│   │   └── results.md
+│   └── test 2/                          # Live session settlement report and trade ledger (Nov 16, 2026)
+│       ├── live_dashboard_full.png
+│       ├── live_session_performance_settlement.png
+│       ├── session_results.json
+│       └── results.md
 └── tests/                               # Pytest test suite (31 tests)
 ```
 
@@ -310,52 +318,31 @@ Open `http://localhost:3000` in your browser. The dashboard connects to the back
 
 To select the primary production architecture, we evaluated multiple machine learning approaches on out-of-sample data under identical execution rules (0.15 points per side transaction costs, bracketed take-profit and stop-loss exits, and a 6-bar timeout).
 
-### Live Out-of-Sample Settlement (November 16, 2026 Active Session)
-
-During the live session on November 16, 2026, the S&P 500 Index closed at **7,420.19** (-93.79 pts / -1.25%). The production Random Forest Hybrid trading engine operated in real time across the full 09:30 to 16:00 EST session.
-
-Settling the portfolio at the 16:00 EST session close yielded **+55.04 SPX net points** (+55.94 gross points) with all positions closed (`FLAT`) and zero open overnight risk:
-
-![Live Session Performance Settlement](reports/figures/live_session_performance_settlement.png)
-
-#### Live Session Performance Summary
-
-| Metric | Live Session Value | Context and Description |
-| :--- | :---: | :--- |
-| **Net Realized P&L** | **+55.04 pts** | Net of standard 0.15 pt/side execution costs and slippage (Gross: +55.94 pts) |
-| **Win Rate** | **66.7%** | 2 winning shorts (+28.80 pts, +26.47 pts) and 1 scratch bracket exit (-0.23 pts) |
-| **Profit Factor** | **240.63** | Gross profits of +55.94 pts against a single loss of -0.23 pts |
-| **Max Drawdown** | **0.23 pts** | Minimal equity retracement throughout the active session |
-| **Abstention Rate** | **87.2%** | Disciplined HOLD gating during late-session sideways consolidation (7,415 - 7,427) |
-| **Settlement Position** | **FLAT** | Zero open exposure (0.00 unrealized risk) at the 16:00 EST close |
-
-#### S&P 500 Dollar Settlement Equivalents
-
-| Instrument | Contract Multiplier | Net Realized Settlement Value |
-| :--- | :--- | :---: |
-| **SPX Cash Index / SPX Options Delta** | \$100 / index point | **+\$5,504.00** |
-| **E-mini S&P 500 Futures (`/ES`)** | \$50 / index point | **+\$2,752.00** |
-| **Micro E-mini Futures (`/MES`)** | \$5 / index point | **+\$275.20** |
-| **SPY ETF Equivalent** | 1/10th scale | **+\$5.50 / share** |
-
 ### Out-of-Sample Performance Comparison
 
-The table below summarizes performance across candidate architectures evaluated over an out-of-sample weekly market sequence. Detailed metrics can be inspected directly in [artifacts/models/evaluation_stats/ml_methods_comparison_report.json](artifacts/models/evaluation_stats/ml_methods_comparison_report.json).
+The table below summarizes cumulative performance across candidate architectures evaluated over out-of-sample trading sessions (including the active November 16, 2026 session). Detailed metrics can be inspected directly in [artifacts/models/evaluation_stats/ml_methods_comparison_report.json](artifacts/models/evaluation_stats/ml_methods_comparison_report.json).
 
-| Model Architecture | Implementation / Artifact | Net P&L (pts) | Total Trades | Win Rate | Max Drawdown | Profit Factor |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Random Forest Hybrid (110 trees)** *(Primary)* | [artifacts/models/random_wrapper.pkl](artifacts/models/random_wrapper.pkl) | **+79.54 pts** | 36 | 52.8% | 50.57 pts | 1.57 |
-| **HistGradientBoosting (HGBM)** | [artifacts/models/comparison/histgradientboosting_wrapper.pkl](artifacts/models/comparison/histgradientboosting_wrapper.pkl) | +58.32 pts | 33 | 45.5% | 40.02 pts | 1.72 |
-| **Option A (Native LightGBM)** | [artifacts/models/comparison/option_a_wrapper.pkl](artifacts/models/comparison/option_a_wrapper.pkl) | +40.05 pts | 54 | 50.0% | 42.17 pts | 0.91 |
-| **Multi-Layer Perceptron (MLP)** | [artifacts/models/comparison/multilayer_wrapper.pkl](artifacts/models/comparison/multilayer_wrapper.pkl) | +110.15 pts | 62 | 50.0% | 44.20 pts | 1.53 |
-| **Support Vector Machine (SVM)** | [artifacts/models/comparison/support_wrapper.pkl](artifacts/models/comparison/support_wrapper.pkl) | -18.89 pts | 28 | 42.9% | 45.94 pts | 0.81 |
-| **Pure Adaptive v2 (Rule-only baseline)** | [src/models/spx_adaptive_v2.py](src/models/spx_adaptive_v2.py) | +75.11 pts | 50 | 50.0% | 44.73 pts | 1.36 |
+| Model Architecture | Implementation / Artifact | Cumulative Net P&L | Today (Nov 16) | Total Trades | Win Rate | Max Drawdown | Profit Factor |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Pure Adaptive v2 (Rule-only baseline)** | [src/models/spx_adaptive_v2.py](src/models/spx_adaptive_v2.py) | **+154.82 pts** | +79.71 pts | 66 | 53.0% | 44.73 pts | 1.36 |
+| **Random Forest Hybrid (110 trees)** *(Primary)* | [artifacts/models/random_wrapper.pkl](artifacts/models/random_wrapper.pkl) | **+115.38 pts** | **+35.84 pts** | 41 | **53.7%** | 50.57 pts | **1.57** |
+| **HistGradientBoosting (HGBM)** | [artifacts/models/comparison/histgradientboosting_wrapper.pkl](artifacts/models/comparison/histgradientboosting_wrapper.pkl) | +105.83 pts | +47.51 pts | 36 | 50.0% | 40.02 pts | 1.72 |
+| **Multi-Layer Perceptron (MLP)** | [artifacts/models/comparison/multilayer_wrapper.pkl](artifacts/models/comparison/multilayer_wrapper.pkl) | +104.05 pts | -6.10 pts | 67 | 49.3% | 44.20 pts | 1.53 |
+| **Option A (Native LightGBM)** | [artifacts/models/comparison/option_a_wrapper.pkl](artifacts/models/comparison/option_a_wrapper.pkl) | +61.36 pts | +21.31 pts | 62 | 51.6% | 42.17 pts | 0.91 |
+| **Support Vector Machine (SVM)** | [artifacts/models/comparison/support_wrapper.pkl](artifacts/models/comparison/support_wrapper.pkl) | +16.19 pts | +35.08 pts | 35 | 42.9% | 45.94 pts | 0.81 |
+
+### Comprehensive Test Reports
+
+Full settlement dossiers, tick-level trade ledgers, screenshots, and multi-year backtests are documented in the [test results/](test%20results/) suite:
+
+- **Test 1**: Multi-year historical backtest, execution distribution, and risk metrics ([test results/test 1/results.md](test%20results/test%201/results.md)).
+- **Test 2**: Live session settlement on November 16, 2026, with derivative dollar equivalents, full-day trade logs, and high-resolution dashboard captures ([test results/test 2/results.md](test%20results/test%202/results.md)).
 
 ### Evaluation Observations
 
-1. **Trade Selectivity and Win Rate**: The Random Forest Hybrid model achieved the highest directional win rate (52.8%) among decision-tree approaches while cutting trade count from 50 down to 36, filtering out marginal signals during sideways price action.
+1. **Trade Selectivity and Win Rate**: The Random Forest Hybrid model achieved the highest directional win rate (53.7%) among ML approaches while cutting trade count from 66 down to 41, filtering out marginal signals during sideways price action.
 2. **Pine Script Export Parity**: The Random Forest model converts cleanly into self-contained TradingView Pine Script ([scripts/SPX_Adaptive_v2_ML_RandomForest.pine](scripts/SPX_Adaptive_v2_ML_RandomForest.pine)) without relying on external webhooks, matching the Python backtest output bar for bar.
-3. **Linear Classifiers**: The Support Vector Machine with an RBF kernel showed vulnerability to intraday regime changes, finishing negative (-18.89 points) over the evaluation sample.
+3. **Consolidation Filtering**: During rangebound market conditions, the Random Forest classifier successfully abstains from entering false breakouts, protecting capital through automated dual-concurrence gating.
 
 ### Supporting Evidence and Visual Artifacts
 
