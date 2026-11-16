@@ -1,15 +1,147 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Institutional Terminal (Pitch Black / Cream) · redesign: full
- * nav: edge-aligned top chrome · hero: stage · footer: quiet compliance and model disclosure · signature: 30-minute forward trajectory path overlay · states: hover, focus-visible, active, disabled
- * axes: dark/display-condensed/warm · posture: committed · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: P, high-precision dark financial workstation with exact tradingview layout and token system */
+@import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-line-primary: var(--chart-line-primary);
+  --color-chart-line-secondary: var(--chart-line-secondary);
+  --color-chart-brush-border: var(--chart-brush-border);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-03: var(--chart-scale-03);
+  --color-chart-scale-04: var(--chart-scale-04);
+  --color-chart-scale-05: var(--chart-scale-05);
+  --color-chart-segment-line: var(--chart-segment-line);
+  --color-chart-segment-background: var(--chart-segment-background);
+  --color-chart-marker-badge-foreground: var(--chart-marker-badge-foreground);
+  --color-chart-marker-badge-background: var(--chart-marker-badge-background);
+  --color-chart-indicator-secondary-color: var(--chart-indicator-secondary-color);
+  --color-chart-indicator-color: var(--chart-indicator-color);
+  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --chart-scale-05: var(--chart-scale-05);
+  --chart-scale-04: var(--chart-scale-04);
+  --chart-scale-03: var(--chart-scale-03);
+  --chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-01: var(--chart-scale-01);
+  --color-chart-scale-mix: var(--chart-scale-mix);
+  --color-chart-label: var(--chart-label);
+  --color-chart-marker-foreground: var(--chart-marker-foreground);
+  --color-chart-marker-border: var(--chart-marker-border);
+  --color-chart-marker-background: var(--chart-marker-background);
+  --chart-tooltip-muted: var(--chart-tooltip-muted);
+  --chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --chart-tooltip-background: var(--chart-tooltip-background);
+  --chart-brush-border: var(--chart-brush-border);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-crosshair: var(--chart-crosshair);
+  --chart-line-secondary: var(--chart-line-secondary);
+  --chart-line-primary: var(--chart-line-primary);
+  --color-chart-foreground-muted: var(--chart-foreground-muted);
+  --color-chart-foreground: var(--chart-foreground);
+  --color-chart-background: var(--chart-background);
+  --color-chart-negative: var(--chart-negative);
+  --color-chart-positive: var(--chart-positive);
+  --color-legend-track: var(--legend-track);
+  --color-legend-muted-foreground: var(--legend-muted-foreground);
+  --color-legend-muted: var(--legend-muted);
+  --color-legend-foreground: var(--legend-foreground);
+  --color-legend: var(--legend);
+}
+
 :root {
   color-scheme: dark;
+  --radius: 1rem;
+  --background: oklch(9.5% 0.008 260);
+  --foreground: oklch(96% 0.005 240);
+  --card: oklch(13% 0.009 260);
+  --card-foreground: oklch(96% 0.005 240);
+  --popover: oklch(14.5% 0.01 260);
+  --popover-foreground: oklch(96% 0.005 240);
+  --primary: oklch(76% 0.18 160);
+  --primary-foreground: oklch(12% 0.02 160);
+  --secondary: oklch(18% 0.01 260);
+  --secondary-foreground: oklch(90% 0.008 240);
+  --muted: oklch(18% 0.01 260);
+  --muted-foreground: oklch(64% 0.01 240);
+  --accent: oklch(20% 0.012 260);
+  --accent-foreground: oklch(96% 0.005 240);
+  --destructive: oklch(70% 0.21 25);
+  --border: oklch(24% 0.01 260);
+  --input: oklch(24% 0.01 260);
+  --ring: oklch(72% 0.2 260);
+
+  /* Bklit Chart variables */
+  --chart-background: oklch(13% 0.009 260);
+  --chart-foreground: oklch(96% 0.005 240);
+  --chart-foreground-muted: oklch(64% 0.01 240);
+  --chart-label: oklch(68% 0.01 240);
+  --chart-grid: oklch(26% 0.01 260 / 0.55);
+  --chart-line-primary: oklch(76% 0.18 160);
+  --chart-line-secondary: oklch(72% 0.2 260);
+  --chart-positive: oklch(76% 0.18 160);
+  --chart-negative: oklch(72% 0.22 25);
+  --chart-crosshair: oklch(70% 0.01 240);
+  --chart-brush-border: oklch(28% 0.01 260);
+  --chart-tooltip-background: oklch(15% 0.012 260 / 0.96);
+  --chart-tooltip-foreground: oklch(96% 0.005 240);
+  --chart-tooltip-muted: oklch(64% 0.01 240);
+  --chart-marker-background: oklch(13% 0.009 260);
+  --chart-marker-border: oklch(96% 0.005 240);
+  --chart-marker-foreground: oklch(96% 0.005 240);
+  --chart-indicator-color: oklch(96% 0.005 240);
+  --chart-indicator-secondary-color: oklch(15% 0.01 260);
+  --chart-marker-badge-background: oklch(96% 0.005 240);
+  --chart-marker-badge-foreground: oklch(12% 0.01 260);
+  --chart-segment-background: oklch(40% 0.02 250 / 0.22);
+  --chart-segment-line: oklch(96% 0.005 240 / 0.22);
+  --chart-1: oklch(76% 0.18 160);
+  --chart-2: oklch(72% 0.2 260);
+  --chart-3: oklch(80% 0.16 75);
+  --chart-4: oklch(75% 0.2 300);
+  --chart-5: oklch(72% 0.22 25);
+  --chart-scale-mix: oklch(24% 0.01 260);
+  --chart-scale-01: oklch(26% 0.01 260);
+  --chart-scale-02: color-mix(in oklab, var(--chart-1) 35%, var(--chart-scale-mix));
+  --chart-scale-03: color-mix(in oklab, var(--chart-1) 55%, var(--chart-scale-mix));
+  --chart-scale-04: color-mix(in oklab, var(--chart-1) 78%, var(--chart-scale-mix));
+  --chart-scale-05: var(--chart-1);
+  --chart-scale-pattern-color: oklch(14% 0.009 260);
+  --legend: oklch(16% 0.01 260);
+  --legend-foreground: oklch(96% 0.005 240);
+  --legend-muted: oklch(22% 0.01 260);
+  --legend-muted-foreground: oklch(66% 0.01 240);
+  --legend-track: oklch(24% 0.01 260);
+
   --space-3xs: 2px;
   --space-2xs: 4px;
-  --space-xs: 6px;
-  --space-sm: 8px;
-  --space-md: 12px;
-  --space-lg: 16px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
   --space-xl: 24px;
   --space-2xl: 32px;
 
@@ -28,36 +160,36 @@
   --dur-short: 180ms;
   --dur-long: 300ms;
 
-  /* Complete pitch black dark theme tokens */
-  --color-paper: oklch(8% 0.008 260);
-  --color-paper-2: oklch(11% 0.008 260);
-  --color-paper-3: oklch(14% 0.009 260);
-  --color-paper-4: oklch(20% 0.01 260);
+  /* Modern dark slate surface tokens */
+  --color-paper: oklch(9.5% 0.008 260);
+  --color-paper-2: oklch(13% 0.009 260);
+  --color-paper-3: oklch(16.5% 0.01 260);
+  --color-paper-4: oklch(21% 0.012 260);
   --color-ink: oklch(96% 0.005 240);
-  --color-ink-2: oklch(84% 0.008 240);
-  --color-muted: oklch(58% 0.008 240);
-  --color-rule: oklch(18% 0.008 260);
-  --color-rule-2: oklch(26% 0.01 260);
+  --color-ink-2: oklch(85% 0.008 240);
+  --color-muted: oklch(62% 0.01 240);
+  --color-rule: oklch(22% 0.01 260);
+  --color-rule-2: oklch(30% 0.012 260);
 
   /* High-contrast trading semantic colors */
   --color-up: oklch(76% 0.18 160);
-  --color-up-wash: oklch(16% 0.04 160);
-  --color-up-border: oklch(34% 0.09 160);
+  --color-up-wash: oklch(17% 0.04 160);
+  --color-up-border: oklch(36% 0.09 160);
 
   --color-down: oklch(72% 0.22 25);
-  --color-down-wash: oklch(16% 0.04 25);
-  --color-down-border: oklch(36% 0.1 25);
+  --color-down-wash: oklch(17% 0.04 25);
+  --color-down-border: oklch(38% 0.1 25);
 
   --color-blue: oklch(72% 0.2 260);
-  --color-blue-wash: oklch(16% 0.04 260);
-  --color-blue-border: oklch(34% 0.09 260);
+  --color-blue-wash: oklch(17% 0.04 260);
+  --color-blue-border: oklch(36% 0.09 260);
 
   --color-amber: oklch(80% 0.16 75);
-  --color-amber-wash: oklch(16% 0.04 75);
+  --color-amber-wash: oklch(17% 0.04 75);
   --color-amber-border: oklch(36% 0.08 75);
 
   --color-violet: oklch(75% 0.2 300);
-  --color-violet-wash: oklch(16% 0.04 300);
+  --color-violet-wash: oklch(17% 0.04 300);
   --color-violet-border: oklch(36% 0.08 300);
 
   --color-focus: oklch(65% 0.22 260);
@@ -72,33 +204,116 @@
   --color-vwap: oklch(80% 0.16 85);
   --color-vwap-wash: oklch(20% 0.05 85);
 
-  --shadow-dropdown: 0 6px 18px oklch(0% 0 0 / 0.45);
+  --shadow-dropdown: 0 12px 32px oklch(0% 0 0 / 0.45);
+  --shadow-card: 0 1px 2px oklch(0% 0 0 / 0.25), 0 8px 24px oklch(0% 0 0 / 0.22);
 
-  /* Institutional typography: Geist throughout (except shadcn elements) */
+  /* Typography */
   --font-display: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-shadcn: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Low roundedness: crisp 2px technical edges, zero pills */
-  --radius-card: 2px;
-  --radius-tile: 2px;
-  --radius-pill: 2px;
+  /* Modern rounded dashboard geometry */
+  --radius-card: 16px;
+  --radius-tile: 12px;
+  --radius-pill: 9999px;
   --rule-hair: 1px;
+  --legend: oklch(1 0 0);
+  --legend-foreground: oklch(0.141 0.005 285.823);
+  --legend-muted: oklch(0.967 0.001 286.375);
+  --legend-muted-foreground: oklch(0.552 0.016 285.938);
+  --legend-track: oklch(0.92 0.004 286.32);
+  --chart-positive: oklch(0.696 0.17 162.48);
+  --chart-negative: oklch(0.637 0.237 25.331);
+  --chart-brush-border: var(--chart-grid);
+  --chart-tooltip-muted: var(--muted-foreground);
+  --chart-marker-foreground: oklch(0.3 0.01 260);
+  --chart-scale-mix: oklch(1 0 0);
+  --chart-scale-01: oklch(0.922 0 0);
+  --chart-scale-02: color-mix(in oklab, var(--chart-1) 35%, var(--chart-scale-mix));
+  --chart-scale-03: color-mix(in oklab, var(--chart-1) 55%, var(--chart-scale-mix));
+  --chart-scale-04: color-mix(in oklab, var(--chart-1) 78%, var(--chart-scale-mix));
+  --chart-scale-05: var(--chart-1);
+  --chart-scale-pattern-color: oklch(1 0 0);
+  --chart-indicator-color: oklch(0.21 0.006 285);
+  --chart-indicator-secondary-color: oklch(0.913 0 0);
+  --chart-marker-badge-background: oklch(0 0 0);
+  --chart-marker-badge-foreground: oklch(0.84 0 0);
+  --chart-segment-background: oklch(0.756 0 0 / 0.06);
+  --chart-segment-line: oklch(0.5 0 0 / 0.25);
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  /* Standard light theme tokens */
-  --color-paper: oklch(97.5% 0.006 240);
-  --color-paper-2: oklch(99.2% 0.005 240);
-  --color-paper-3: oklch(95% 0.006 240);
-  --color-paper-4: oklch(91% 0.008 240);
+  --background: oklch(97.5% 0.005 240);
+  --foreground: oklch(14% 0.015 240);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(14% 0.015 240);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(14% 0.015 240);
+  --primary: oklch(48% 0.16 160);
+  --primary-foreground: oklch(99% 0 0);
+  --secondary: oklch(95% 0.006 240);
+  --secondary-foreground: oklch(20% 0.015 240);
+  --muted: oklch(95% 0.006 240);
+  --muted-foreground: oklch(48% 0.012 240);
+  --accent: oklch(94% 0.008 240);
+  --accent-foreground: oklch(14% 0.015 240);
+  --destructive: oklch(50% 0.22 25);
+  --border: oklch(89% 0.007 240);
+  --input: oklch(89% 0.007 240);
+  --ring: oklch(48% 0.2 260);
+
+  --chart-background: oklch(100% 0 0);
+  --chart-foreground: oklch(14% 0.015 240);
+  --chart-foreground-muted: oklch(48% 0.012 240);
+  --chart-label: oklch(46% 0.012 240);
+  --chart-grid: oklch(88% 0.008 240 / 0.8);
+  --chart-line-primary: oklch(48% 0.16 160);
+  --chart-line-secondary: oklch(46% 0.2 260);
+  --chart-positive: oklch(48% 0.16 160);
+  --chart-negative: oklch(50% 0.22 25);
+  --chart-crosshair: oklch(52% 0.012 240);
+  --chart-brush-border: oklch(84% 0.008 240);
+  --chart-tooltip-background: oklch(99% 0.003 240 / 0.96);
+  --chart-tooltip-foreground: oklch(14% 0.015 240);
+  --chart-tooltip-muted: oklch(50% 0.012 240);
+  --chart-marker-background: oklch(100% 0 0);
+  --chart-marker-border: oklch(14% 0.015 240);
+  --chart-marker-foreground: oklch(14% 0.015 240);
+  --chart-indicator-color: oklch(20% 0.01 240);
+  --chart-indicator-secondary-color: oklch(98% 0 0);
+  --chart-marker-badge-background: oklch(14% 0.015 240);
+  --chart-marker-badge-foreground: oklch(98% 0 0);
+  --chart-segment-background: oklch(85% 0.01 240 / 0.35);
+  --chart-segment-line: oklch(25% 0.01 240 / 0.25);
+  --chart-1: oklch(48% 0.16 160);
+  --chart-2: oklch(46% 0.2 260);
+  --chart-3: oklch(52% 0.16 75);
+  --chart-4: oklch(48% 0.2 300);
+  --chart-5: oklch(50% 0.22 25);
+  --chart-scale-mix: oklch(94% 0.006 240);
+  --chart-scale-01: oklch(92% 0.006 240);
+  --chart-scale-02: color-mix(in oklab, var(--chart-1) 35%, var(--chart-scale-mix));
+  --chart-scale-03: color-mix(in oklab, var(--chart-1) 55%, var(--chart-scale-mix));
+  --chart-scale-04: color-mix(in oklab, var(--chart-1) 78%, var(--chart-scale-mix));
+  --chart-scale-05: var(--chart-1);
+  --chart-scale-pattern-color: oklch(98% 0 0);
+  --legend: oklch(98% 0.003 240);
+  --legend-foreground: oklch(14% 0.015 240);
+  --legend-muted: oklch(93% 0.006 240);
+  --legend-muted-foreground: oklch(48% 0.012 240);
+  --legend-track: oklch(90% 0.007 240);
+
+  --color-paper: oklch(97.5% 0.005 240);
+  --color-paper-2: oklch(100% 0 0);
+  --color-paper-3: oklch(95.5% 0.006 240);
+  --color-paper-4: oklch(92% 0.008 240);
   --color-ink: oklch(14% 0.015 240);
   --color-ink-2: oklch(28% 0.015 240);
-  --color-muted: oklch(54% 0.012 240);
-  --color-rule: oklch(89% 0.005 240);
-  --color-rule-2: oklch(80% 0.008 240);
+  --color-muted: oklch(48% 0.012 240);
+  --color-rule: oklch(89% 0.007 240);
+  --color-rule-2: oklch(80% 0.009 240);
 
   --color-up: oklch(48% 0.16 160);
   --color-up-wash: oklch(96% 0.03 160);
@@ -129,49 +344,44 @@
   --color-vwap: oklch(50% 0.16 85);
   --color-vwap-wash: oklch(96% 0.03 85);
 
-  --shadow-dropdown: 0 6px 18px oklch(0% 0 0 / 0.08);
+  --shadow-dropdown: 0 10px 28px oklch(0% 0 0 / 0.1);
+  --shadow-card: 0 1px 3px oklch(0% 0 0 / 0.05), 0 8px 20px oklch(0% 0 0 / 0.04);
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
 
-html, body {
-  overflow-x: clip;
-}
+  html, body {
+    overflow-x: clip;
+  }
 
-body {
-  background-color: var(--color-paper);
-  color: var(--color-ink-2);
-  font-family: var(--font-body);
-  font-size: var(--text-md);
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  line-height: 1.45;
-}
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink-2);
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    line-height: 1.45;
+  }
 
-button {
-  font-family: inherit;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
 
-button:focus-visible, a:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 1px;
-}
+  button:focus-visible, a:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
 
-button:active {
-  transform: scale(0.99);
-}
-
-button:disabled, button[aria-disabled="true"] {
-  opacity: 0.5;
-  cursor: not-allowed;
+  button:disabled, button[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 /* Root layout */
@@ -256,55 +466,101 @@ button:disabled, button[aria-disabled="true"] {
   font-weight: 500;
 }
 
-/* Workspace main grid - close cards with minimal gaps */
+/* Modern airy Bento grid workspace layout */
 .terminal-workspace {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-xs);
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
   max-width: 1920px;
   width: 100%;
   margin: 0 auto;
 }
 
-.terminal-upper-row {
+.bento-zone {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--space-2xs);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  align-items: stretch;
 }
 
-.terminal-lower-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-2xs);
-}
-
-
-.upper-chart-col {
-  min-width: 0;
-}
-
-.upper-sidebar-col {
+.bento-col-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: var(--space-md);
   min-width: 0;
 }
 
-.lower-half-col {
+.bento-card-slot {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
-/* Common panel container - single border, no nested card madness */
+.bento-card-slot > section,
+.bento-card-slot > .chart-wrapper-panel {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.bento-card-grow {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bento-card-grow > section {
+  flex: 1 1 auto;
+  height: 100%;
+  justify-content: space-between;
+}
+
+@media (min-width: 1280px) {
+  .bento-hero-zone,
+  .bento-core-zone,
+  .bento-lower-zone {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .bento-hero-chart {
+    grid-column: span 8 / span 8;
+  }
+
+  .bento-hero-signal {
+    grid-column: span 4 / span 4;
+  }
+
+  .bento-hero-chart .chart-canvas-area {
+    flex: 1 1 auto;
+    min-height: 480px;
+    height: auto;
+  }
+
+  .bento-core-wide {
+    grid-column: span 7 / span 7;
+  }
+
+  .bento-core-rail {
+    grid-column: span 5 / span 5;
+  }
+
+  .bento-half {
+    grid-column: span 6 / span 6;
+  }
+}
+
+/* Elevated rounded card container */
 .panel-container {
   background-color: var(--color-paper-2);
   border: var(--rule-hair) solid var(--color-rule);
   border-radius: var(--radius-card);
-  padding: var(--space-sm) var(--space-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-md) var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
 }
 
 .panel-headline {
@@ -1346,22 +1602,15 @@ button:disabled, button[aria-disabled="true"] {
 
 /* Responsive Layout Breakpoints */
 
-/* Laptops & compact desktop screens (<= 1200px): stack upper row so chart has full width */
+/* Laptops & compact desktop screens (<= 1200px): chart fills full width cleanly */
 @media (max-width: 1200px) {
-  .terminal-upper-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .chart-canvas-area {
     height: 440px;
   }
 }
 
-/* Tablets (<= 960px): stack lower row and reflow top header */
+/* Tablets (<= 960px): reflow top header and compact chart height */
 @media (max-width: 960px) {
-  .terminal-lower-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
 
   .market-top-bar {
     flex-direction: column;

@@ -1,0 +1,161 @@
+//@version=6
+indicator("Multi-Timeframe Support & Resistance / Supply & Demand Zones", shorttitle="MTF S&R Zones", overlay=true, max_boxes_count=100)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INPUT CONTROLS
+// ═════════════════════════════════════════════════════════════════════════════
+grpHTF = "Timeframe Configuration"
+showWeekly   = input.bool(true, "Show Weekly Zones", group=grpHTF)
+showDaily    = input.bool(true, "Show Daily Zones", group=grpHTF)
+showSession  = input.bool(true, "Show Session Opening Range Zones", group=grpHTF)
+zoneAtrMult  = input.float(0.40, "Zone Thickness (x ATR)", minval=0.1, maxval=2.0, step=0.05, group=grpHTF)
+maxBoxLen    = input.int(150, "Max Extension Bars", minval=10, maxval=500, group=grpHTF)
+
+grpStyle = "Visual Styles & Transparency"
+c_res_bg     = input.color(color.new(#ef4444, 85), "Resistance Box Fill", group=grpStyle)
+c_res_border = input.color(color.new(#b91c1c, 40), "Resistance Border", group=grpStyle)
+c_sup_bg     = input.color(color.new(#10b981, 85), "Support Box Fill", group=grpStyle)
+c_sup_border = input.color(color.new(#047857, 40), "Support Border", group=grpStyle)
+c_brk_bg     = input.color(color.new(#ef4444, 82), "Breaker Box Fill", group=grpStyle)
+c_brk_border = input.color(color.new(#991b1b, 35), "Breaker Border", group=grpStyle)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MULTI-TIMEFRAME DATA FETCHING (NO LOOKAHEAD)
+// ═════════════════════════════════════════════════════════════════════════════
+f_get_htf_data(string tf) =>
+    [h, l, c] = request.security(syminfo.tickerid, tf, [high[1], low[1], close[1]], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    atr = request.security(syminfo.tickerid, tf, ta.atr(14)[1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+    [h, l, c, atr]
+
+[wHigh, wLow, wClose, wAtr] = f_get_htf_data("W")
+[dHigh, dLow, dClose, dAtr] = f_get_htf_data("D")
+
+bool newWeekBar  = ta.change(time("W")) != 0
+bool newDayBar   = ta.change(time("D")) != 0
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ZONE MANAGEMENT LOGIC (BOXES & POLARITY FLIPS)
+// ═════════════════════════════════════════════════════════════════════════════
+var box weeklyResBox = na
+var box weeklySupBox = na
+var float weeklyResTop = na
+var float weeklyResBot = na
+var float weeklySupTop = na
+var float weeklySupBot = na
+var bool weeklySupBroken = false
+
+var box dailyResBox = na
+var box dailySupBox = na
+var float dailyResTop = na
+var float dailyResBot = na
+var float dailySupTop = na
+var float dailySupBot = na
+var bool dailySupBroken = false
+
+// 1. Weekly S&R Zone Spawn
+if showWeekly and newWeekBar and not na(wHigh)
+    float thickW = nz(wAtr, ta.atr(14)) * zoneAtrMult
+    weeklyResTop := wHigh
+    weeklyResBot := wHigh - thickW
+    weeklySupBot := wLow
+    weeklySupTop := wLow + thickW
+    weeklySupBroken := false
+    
+    weeklyResBox := box.new(left=bar_index, top=weeklyResTop, right=bar_index + 15, bottom=weeklyResBot,
+                            bgcolor=c_res_bg, border_color=c_res_border, border_width=1,
+                            text="Weekly Res", text_size=size.tiny, text_color=color.maroon,
+                            text_valign=text.valign_top, text_halign=text.halign_left)
+                            
+    weeklySupBox := box.new(left=bar_index, top=weeklySupTop, right=bar_index + 15, bottom=weeklySupBot,
+                            bgcolor=c_sup_bg, border_color=c_sup_border, border_width=1,
+                            text="Weekly Sup", text_size=size.tiny, text_color=color.teal,
+                            text_valign=text.valign_bottom, text_halign=text.halign_left)
+
+// 2. Daily S&R Zone Spawn
+if showDaily and newDayBar and not na(dHigh)
+    float thickD = nz(dAtr, ta.atr(14)) * zoneAtrMult
+    dailyResTop := dHigh
+    dailyResBot := dHigh - thickD
+    dailySupBot := dLow
+    dailySupTop := dLow + thickD
+    dailySupBroken := false
+    
+    dailyResBox := box.new(left=bar_index, top=dailyResTop, right=bar_index + 10, bottom=dailyResBot,
+                           bgcolor=c_res_bg, border_color=c_res_border, border_width=1,
+                           text="Daily Res", text_size=size.tiny, text_color=color.maroon,
+                           text_valign=text.valign_top, text_halign=text.halign_left)
+                           
+    dailySupBox := box.new(left=bar_index, top=dailySupTop, right=bar_index + 10, bottom=dailySupBot,
+                           bgcolor=c_sup_bg, border_color=c_sup_border, border_width=1,
+                           text="Daily Sup", text_size=size.tiny, text_color=color.teal,
+                           text_valign=text.valign_bottom, text_halign=text.halign_left)
+
+// 3. Dynamic Forward Projection & Breaker Polarity Flip
+if not na(weeklyResBox)
+    box.set_right(weeklyResBox, bar_index + 6)
+    if ta.crossover(close, weeklyResTop)
+        box.set_bgcolor(weeklyResBox, color.new(color.gray, 90))
+        box.set_border_color(weeklyResBox, color.new(color.gray, 60))
+        box.set_text(weeklyResBox, "Weekly Breached (Sup)")
+
+if not na(weeklySupBox)
+    box.set_right(weeklySupBox, bar_index + 6)
+    // Polarity Flip: Clean breakdown turns Support into Resistance Breaker!
+    if not weeklySupBroken and ta.crossunder(close, weeklySupBot)
+        weeklySupBroken := true
+        box.set_bgcolor(weeklySupBox, c_brk_bg)
+        box.set_border_color(weeklySupBox, c_brk_border)
+        box.set_text(weeklySupBox, "Weekly Breaker (Res)")
+        box.set_text_color(weeklySupBox, color.red)
+
+if not na(dailyResBox)
+    box.set_right(dailyResBox, bar_index + 4)
+    if ta.crossover(close, dailyResTop)
+        box.set_bgcolor(dailyResBox, color.new(color.gray, 90))
+        box.set_border_color(dailyResBox, color.new(color.gray, 60))
+        box.set_text(dailyResBox, "Daily Breached (Sup)")
+
+if not na(dailySupBox)
+    box.set_right(dailySupBox, bar_index + 4)
+    if not dailySupBroken and ta.crossunder(close, dailySupBot)
+        dailySupBroken := true
+        box.set_bgcolor(dailySupBox, c_brk_bg)
+        box.set_border_color(dailySupBox, c_brk_border)
+        box.set_text(dailySupBox, "Daily Breaker (Res)")
+        box.set_text_color(dailySupBox, color.red)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// INTRADAY SESSION OPENING RANGE ZONES (FIRST 30 MIN RTH)
+// ═════════════════════════════════════════════════════════════════════════════
+var float orHigh = na
+var float orLow = na
+var box orBox = na
+
+t_str = str.format_time(time, "HH:mm", "America/New_York")
+isSessionStart = (t_str == "09:30")
+inOpeningWindow = (t_str >= "09:30" and t_str <= "10:00")
+
+if isSessionStart
+    orHigh := high
+    orLow := low
+    orBox := na
+else if inOpeningWindow
+    orHigh := math.max(nz(orHigh, high), high)
+    orLow := math.min(nz(orLow, low), low)
+
+if showSession and t_str == "10:05" and not na(orHigh)
+    orBox := box.new(left=bar_index - 7, top=orHigh, right=bar_index + 20, bottom=orLow,
+                     bgcolor=color.new(#3b82f6, 90), border_color=color.new(#1d4ed8, 50), border_width=1,
+                     text="Session OR (30m)", text_size=size.tiny, text_color=color.blue,
+                     text_valign=text.valign_center, text_halign=text.halign_left)
+
+if not na(orBox)
+    box.set_right(orBox, bar_index + 4)
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEVEL METRIC PLOTS FOR DATA WINDOW
+// ═════════════════════════════════════════════════════════════════════════════
+plot(weeklyResTop, "Weekly Res Top", color=color.red, display=display.data_window)
+plot(weeklySupBot, "Weekly Sup Bot", color=color.green, display=display.data_window)
+plot(dailyResTop, "Daily Res Top", color=color.maroon, display=display.data_window)
+plot(dailySupBot, "Daily Sup Bot", color=color.teal, display=display.data_window)

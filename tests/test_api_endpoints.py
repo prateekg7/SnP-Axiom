@@ -35,6 +35,10 @@ def test_api_forecast_latest():
     assert "predicted_high_30m" in data
     assert "predicted_low_30m" in data
     assert "action" in data
+    assert data.get("model_version") in ("spx_option_a_native_ml", "spx_random_forest_v2_hybrid")
+    tel = data.get("telemetry", {})
+    assert "hybrid_score" in tel or "option_a_ml" in tel
+    assert tel.get("trees_count") == 110 or tel.get("option_a_ml", {}).get("tree_counts") is not None
 
 
 def test_api_forecast_history():
@@ -74,6 +78,9 @@ def test_dynamic_directional_matrix_and_live_paper_trading():
     assert t_data["matrix"]["total"] == 1
     assert "latest_forecast" in t_data
     assert t_data["latest_forecast"]["status"] == "PENDING"
+    assert t_data["latest_forecast"]["model_version"] in ("spx_option_a_native_ml", "spx_random_forest_v2_hybrid")
+    tel = t_data["latest_forecast"]["telemetry"]
+    assert "hybrid_score" in tel or "option_a_ml" in tel
 
     # 3. Verify evaluation stats endpoint exposes the live matrix
     stats_resp = client.get("/api/evaluation/stats")
@@ -91,6 +98,15 @@ def test_dynamic_directional_matrix_and_live_paper_trading():
     final_reset = client.post("/api/live/reset")
     assert final_reset.status_code == 200
     assert final_reset.json()["matrix"]["total"] == 0
+
+
+def test_api_live_retest_uses_rf():
+    resp = client.post("/api/live/retest")
+    assert resp.status_code == 200
+    latest = client.get("/api/forecast/latest")
+    assert latest.status_code == 200
+    data = latest.json()
+    assert data.get("model_version") in ("spx_option_a_native_ml", "spx_random_forest_v2_hybrid")
 
 
 def test_frontend_root_serving():

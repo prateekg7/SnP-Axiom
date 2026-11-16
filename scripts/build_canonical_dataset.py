@@ -1,8 +1,13 @@
 import os
+import sys
 from pathlib import Path
 import pandas as pd
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data.getdata_sample import GetDataSampleProvider
 from src.data.yahoo import YahooFinanceProvider
@@ -13,7 +18,7 @@ load_dotenv()
 
 
 def main():
-    lse_raw_path = Path("data/raw/spx_indices_5m_export.parquet")
+    lse_raw_path = PROJECT_ROOT / "data" / "raw" / "spx_indices_5m_export.parquet"
     
     # Check if LSE institutional export is available or can be exported
     if not lse_raw_path.exists():
@@ -89,7 +94,7 @@ def main():
             "3. Overlap validation: Overlapping candles from August to September 2026 showed a mean difference of 1.03 index points."
         )
 
-    out_dir = Path("data/processed")
+    out_dir = PROJECT_ROOT / "data" / "processed"
     out_dir.mkdir(parents=True, exist_ok=True)
     parquet_path = out_dir / "spx_5m_canonical.parquet"
     canonical_df.to_parquet(parquet_path)
@@ -97,8 +102,10 @@ def main():
 
     canonical_audit = audit_dataframe(canonical_df)
 
-    audit_report_path = Path("data/audit_report.md")
-    report_content = f"""# SPX Intraday Dataset Audit Report
+    reports_dir = PROJECT_ROOT / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    audit_report_path = reports_dir / "audit_report.txt"
+    report_content = f"""SPX Intraday Dataset Audit Report
 
 This report summarizes data validation checks, coverage boundaries, and invariants for the canonical 5-minute S&P 500 dataset.
 

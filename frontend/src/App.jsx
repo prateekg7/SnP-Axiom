@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MarketHeader from './components/MarketHeader';
 import CandlestickChart from './components/CandlestickChart';
 import PredictionPanel from './components/PredictionPanel';
 import ForecastLogTable from './components/ForecastLogTable';
-import ConfusionMatrixHeatmap from './components/ConfusionMatrixHeatmap';
+import ConfusionMatrixCard from './components/ConfusionMatrixCard';
 import MarketStatsPanel from './components/MarketStatsPanel';
+import EquityDrawdownCard from './components/EquityDrawdownCard';
+import MarketObservationsCard from './components/MarketObservationsCard';
+import QuantRiskConeCard from './components/QuantRiskConeCard';
+import StrategyEdgeCard from './components/StrategyEdgeCard';
 
 export default function App() {
   const [theme, setTheme] = useState(() => {
@@ -17,6 +21,23 @@ export default function App() {
   const [forecastHistory, setForecastHistory] = useState([]);
   const [evaluationStats, setEvaluationStats] = useState(null);
   const [performance, setPerformance] = useState(null);
+
+  const lastHashesRef = useRef({
+    market: '',
+    candles: '',
+    forecast: '',
+    history: '',
+    stats: '',
+    performance: '',
+  });
+
+  const updateIfChanged = (key, value, setter) => {
+    const hash = JSON.stringify(value);
+    if (lastHashesRef.current[key] !== hash) {
+      lastHashesRef.current[key] = hash;
+      setter(value);
+    }
+  };
 
   // Sync theme with document element
   useEffect(() => {
@@ -39,12 +60,12 @@ export default function App() {
         fetch('/api/performance').then((r) => r.json()).catch(() => null),
       ]);
 
-      if (mRes && !mRes.error) setMarket(mRes);
-      if (Array.isArray(cRes)) setCandles(cRes);
-      if (fRes && !fRes.error) setForecast(fRes);
-      if (Array.isArray(fhRes)) setForecastHistory(fhRes);
-      if (evalRes && !evalRes.error) setEvaluationStats(evalRes);
-      if (perfRes && !perfRes.error) setPerformance(perfRes);
+      if (mRes && !mRes.error) updateIfChanged('market', mRes, setMarket);
+      if (Array.isArray(cRes)) updateIfChanged('candles', cRes, setCandles);
+      if (fRes && !fRes.error) updateIfChanged('forecast', fRes, setForecast);
+      if (Array.isArray(fhRes)) updateIfChanged('history', fhRes, setForecastHistory);
+      if (evalRes && !evalRes.error) updateIfChanged('stats', evalRes, setEvaluationStats);
+      if (perfRes && !perfRes.error) updateIfChanged('performance', perfRes, setPerformance);
     } catch (err) {
       console.error('Error fetching market and model data:', err);
     }
@@ -65,11 +86,11 @@ export default function App() {
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'tick') {
-              if (data.market) setMarket(data.market);
-              if (data.forecast) setForecast(data.forecast);
-              if (data.performance) setPerformance(data.performance);
-              if (data.stats) setEvaluationStats(data.stats);
-              if (Array.isArray(data.history)) setForecastHistory(data.history);
+              if (data.market) updateIfChanged('market', data.market, setMarket);
+              if (data.forecast) updateIfChanged('forecast', data.forecast, setForecast);
+              if (data.performance) updateIfChanged('performance', data.performance, setPerformance);
+              if (data.stats) updateIfChanged('stats', data.stats, setEvaluationStats);
+              if (Array.isArray(data.history)) updateIfChanged('history', data.history, setForecastHistory);
             }
           } catch (e) {
             console.error('WS parse error', e);
@@ -94,15 +115,16 @@ export default function App() {
       {/* Top Header Bar */}
       <MarketHeader
         market={market}
+        forecast={forecast}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
 
-      {/* Main Terminal Workspace Layout */}
+      {/* Main Dashboard Bento Grid */}
       <main className="terminal-workspace">
-        {/* Upper Split: Candlestick Chart (Left) + Predictions & Log Table (Right) */}
-        <section className="terminal-upper-row">
-          <div className="upper-chart-col">
+        {/* Bento Zone 1: Live Price Action Hero (8 cols) + Predictive Signal Dial & Cone (4 cols) */}
+        <section className="bento-zone bento-hero-zone">
+          <div className="bento-card-slot bento-hero-chart">
             <CandlestickChart
               candles={candles}
               forecast={forecast}
@@ -111,30 +133,67 @@ export default function App() {
             />
           </div>
 
-          <div className="upper-sidebar-col">
+          <div className="bento-card-slot bento-hero-signal">
             <PredictionPanel
               forecast={forecast}
               market={market}
             />
-            <ForecastLogTable
-              history={forecastHistory}
-            />
           </div>
         </section>
 
-        {/* Lower Split: Confusion Matrix Heatmap (Left) + P&L, Regime & Quant Stats (Right) */}
-        <section className="terminal-lower-row">
-          <div className="lower-half-col">
-            <ConfusionMatrixHeatmap
-              stats={evaluationStats}
+        {/* Bento Zone 2: Wide Performance & Confusion Track (7 cols, 2 cards) + Telemetry Rail (5 cols, 3 cards) */}
+        <section className="bento-zone bento-core-zone">
+          <div className="bento-col-stack bento-core-wide">
+            <div className="bento-card-slot">
+              <MarketStatsPanel
+                performance={performance}
+                stats={evaluationStats}
+                forecast={forecast}
+                history={forecastHistory}
+              />
+            </div>
+
+            <div className="bento-card-grow">
+              <ConfusionMatrixCard
+                stats={evaluationStats}
+              />
+            </div>
+          </div>
+
+          <div className="bento-col-stack bento-core-rail">
+            <div className="bento-card-slot">
+              <ForecastLogTable
+                history={forecastHistory}
+              />
+            </div>
+
+            <div className="bento-card-slot">
+              <MarketObservationsCard
+                forecast={forecast}
+                history={forecastHistory}
+                market={market}
+              />
+            </div>
+
+            <div className="bento-card-grow">
+              <EquityDrawdownCard
+                performance={performance}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Bento Zone 3: Quantitative Forward Tail Risk (6 cols) + Held-Out Strategy Edge (6 cols) */}
+        <section className="bento-zone bento-lower-zone">
+          <div className="bento-card-slot bento-half bento-card-grow">
+            <QuantRiskConeCard
+              forecast={forecast}
             />
           </div>
 
-          <div className="lower-half-col">
-            <MarketStatsPanel
-              performance={performance}
+          <div className="bento-card-slot bento-half bento-card-grow">
+            <StrategyEdgeCard
               stats={evaluationStats}
-              forecast={forecast}
             />
           </div>
         </section>

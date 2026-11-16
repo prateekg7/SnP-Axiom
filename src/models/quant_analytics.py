@@ -148,3 +148,99 @@ def coupled_ai_technical_decision(
 
     return "HOLD", "COUPLED_SIGNAL_ABSTAIN"
 
+
+def compute_live_quant_snapshot(
+    current_price: float,
+    expected_return_5m: float,
+    realized_vol_30m: float,
+    tp_points: float,
+    sl_points: float,
+    horizon_bars: int = 6,
+    num_paths: int = 2000,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """Computes live Black-Scholes first-touch term odds, Monte Carlo fan, VaR/CVaR, and return distribution."""
+    sigma_30m = max(1e-4, float(realized_vol_30m))
+    mc = monte_carlo_path_simulation(
+        current_price=current_price,
+        expected_return_5m=expected_return_5m,
+        realized_vol_30m=sigma_30m,
+        horizon_bars=horizon_bars,
+        num_paths=num_paths,
+        seed=seed,
+    )
+
+    rng = np.random.default_rng(seed)
+    sigma_bar = max(1e-5, sigma_30m / math.sqrt(6.0))
+    shocks = rng.normal(expected_return_5m, sigma_bar, size=(num_paths, horizon_bars))
+    terminal_prices = current_price * np.exp(np.cumsum(shocks, axis=1)[:, -1])
+    terminal_pts = terminal_prices - current_price
+
+    q5_pts = float(np.percentile(terminal_pts, 5))
+    tail_losses = terminal_pts[terminal_pts <= q5_pts]
+    cvar_95_pts = float(np.mean(tail_losses)) if len(tail_losses) > 0 else q5_pts
+
+    bin_edges = [-1e9, -10.0, -5.0, 0.0, 5.0, 10.0, 1e9]
+    bin_labels = ["<-10", "-10..-5", "-5..0", "0..+5", "+5..+10", ">+10"]
+    counts, _ = np.histogram(terminal_pts, bins=bin_edges)
+    histogram = [
+        {
+            "bucket": lbl,
+            "count": int(cnt),
+            "pct": round(float(cnt) * 100.0 / float(num_paths), 1),
+            "isNegative": i < 3,
+        }
+        for i, (lbl, cnt) in enumerate(zip(bin_labels, counts))
+    ]
+
+    horizons = [5.0, 10.0, 15.0, 30.0]
+    barrier_term_structure = []
+    for h_min in horizons:
+        p_tp = black_scholes_touch_probability(
+            current_price=current_price,
+            barrier_price=current_price + max(0.5, float(tp_points)),
+            realized_vol_30m=sigma_30m,
+            horizon_minutes=h_min,
+            expected_return_5m=expected_return_5m,
+        )
+        p_sl = black_scholes_touch_probability(
+            current_price=current_price,
+            barrier_price=max(1.0, current_price - max(0.5, float(sl_points))),
+            realized_vol_30m=sigma_30m,
+            horizon_minutes=h_min,
+            expected_return_5m=expected_return_5m,
+        )
+        p_scalp = black_scholes_touch_probability(
+            current_price=current_price,
+            barrier_price=current_price + 3.0,
+            realized_vol_30m=sigma_30m,
+            horizon_minutes=h_min,
+            expected_return_5m=expected_return_5m,
+        )
+        barrier_term_structure.append({
+            "horizon": f"{int(h_min)}m",
+            "horizon_minutes": int(h_min),
+            "p_tp_pct": round(p_tp * 100.0, 1),
+            "p_sl_pct": round(p_sl * 100.0, 1),
+            "p_scalp_3pt_pct": round(p_scalp * 100.0, 1),
+        })
+
+    return {
+        "realized_vol_30m_bps": round(sigma_30m * 10000.0, 1),
+        "bs_touch_tp_30m_pct": barrier_term_structure[-1]["p_tp_pct"],
+        "bs_touch_sl_30m_pct": barrier_term_structure[-1]["p_sl_pct"],
+        "bs_touch_3pt_5m_pct": barrier_term_structure[0]["p_scalp_3pt_pct"],
+        "barrier_term_structure": barrier_term_structure,
+        "mc_median_path": mc["median_path"],
+        "mc_upper_90": mc["upper_90"],
+        "mc_lower_90": mc["lower_90"],
+        "mc_expected_max_high": mc["expected_max_high"],
+        "mc_expected_min_low": mc["expected_min_low"],
+        "var_95_pct": mc["var_95_pct"],
+        "var_95_pts": round(q5_pts, 2),
+        "cvar_95_pts": round(cvar_95_pts, 2),
+        "mc_p_up_5m": mc["monte_carlo_p_up_5m"],
+        "terminal_histogram": histogram,
+    }
+
+

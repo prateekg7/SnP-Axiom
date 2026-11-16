@@ -1,6 +1,11 @@
 import asyncio
 import json
 import os
+
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+
 import pickle
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,7 +27,8 @@ from src.decision.jev import JevDecisionProvider
 from src.features.pipeline import FeaturePipeline
 from src.models.calibration import ConformalIntervalCalibrator, ProbabilityCalibrator
 from src.models.lightgbm import LightGBMBenchmark
-from src.trading.paper_engine import PaperTradingEngine
+from src.models.quant_analytics import compute_live_quant_snapshot
+from src.trading.paper_engine import PaperTradingEngine, PositionState, Trade
 
 app = FastAPI(title="SPX AI Trading Indicator API", version="1.0.0")
 
@@ -41,8 +47,11 @@ INTERVAL_PATH = Path("artifacts/models/interval_calibrator.pkl")
 CALIBRATOR_PATH = Path("artifacts/models/calibrator_platt.pkl")
 TRADES_PATH = Path("artifacts/paper_trading_ledger.parquet")
 FORECAST_HISTORY_PATH = Path("artifacts/forecast_history.jsonl")
+LAST_SESSION_CANDLES_PATH = Path("artifacts/last_session_candles.parquet")
+LAST_SESSION_SNAPSHOT_PATH = Path("artifacts/last_session_snapshot.json")
 
 from src.models.spx_adaptive_v2 import SPXAdaptiveAIv2Model
+from src.models.spx_option_a_ml import SPXOptionAMLModel
 
 # Global caches
 candles_cache: Optional[pd.DataFrame] = None
@@ -54,7 +63,51 @@ risk_guard = RiskGuard(reject_stale=True, reject_invalid=True)
 jev_provider = JevDecisionProvider()
 lse_provider = LSEDataProvider()
 spx_v2_model = SPXAdaptiveAIv2Model()
+option_a_model: Optional[SPXOptionAMLModel] = None
 forecast_history_cache: List[Dict[str, Any]] = []
+
+
+def _new_live_paper_engine() -> PaperTradingEngine:
+    return PaperTradingEngine(
+        synthetic_point_value=1.0,
+        cost_per_side_points=0.15,
+        slippage_points=0.0,
+        max_units=1.0,
+        take_profit_points=3.0,
+        stop_loss_points=1.5,
+        max_bars_held=6,
+    )
+
+
+RF_MODEL_PATH = Path("artifacts/models/random_wrapper.pkl")
+rf_model: Optional[Any] = None
+
+
+def _get_random_forest_model():
+    global rf_model
+    if rf_model is None:
+        p = RF_MODEL_PATH
+        if not p.exists():
+            p = Path("artifacts/models/comparison/random_wrapper.pkl")
+        if p.exists():
+            with open(p, "rb") as f:
+                rf_model = pickle.load(f)
+    return rf_model
+
+
+def _get_option_a_model() -> SPXOptionAMLModel:
+    global option_a_model
+    load_resources()
+    if option_a_model is None:
+        option_a_model = SPXOptionAMLModel(
+            lgb_model=lgb_model,
+            platt_cal=platt_cal,
+            interval_cal=interval_cal,
+            feature_pipeline=feature_pipeline,
+            v2_model=spx_v2_model,
+        )
+    return option_a_model
+
 
 # Dynamic live session tracking (starts strictly from 0)
 live_directional_matrix: Dict[str, Any] = {
@@ -73,18 +126,12 @@ live_directional_matrix: Dict[str, Any] = {
 }
 
 # Live paper trading engine with bracket targets (+3.0 TP, -1.5 SL, 6-bar max hold)
-live_paper_engine = PaperTradingEngine(
-    synthetic_point_value=1.0,
-    cost_per_side_points=0.15,
-    slippage_points=0.0,
-    max_units=1.0,
-    take_profit_points=3.0,
-    stop_loss_points=1.5,
-    max_bars_held=6,
-)
+live_paper_engine = _new_live_paper_engine()
 
 # Active pending forecast awaiting resolution by the next completed 5m candle
 pending_forecast: Optional[Dict[str, Any]] = None
+showing_archived_session: bool = False
+_history_loaded: bool = False
 
 # Connected WebSocket clients for real-time broadcasts
 connected_websockets: set = set()
@@ -92,11 +139,13 @@ background_loop_task: Optional[asyncio.Task] = None
 
 
 def load_resources():
-    global candles_cache, lgb_model, interval_cal, platt_cal, forecast_history_cache
+    global candles_cache, lgb_model, interval_cal, platt_cal, rf_model, forecast_history_cache, _history_loaded
     if DATA_PATH.exists() and candles_cache is None:
         candles_cache = pd.read_parquet(DATA_PATH)
         candles_cache["timestamp"] = pd.to_datetime(candles_cache["timestamp"], utc=True)
 
+    if rf_model is None:
+        _get_random_forest_model()
     if MODEL_PATH.exists() and lgb_model is None:
         lgb_model = LightGBMBenchmark.load(str(MODEL_PATH))
     if INTERVAL_PATH.exists() and interval_cal is None:
@@ -106,12 +155,13 @@ def load_resources():
         with open(CALIBRATOR_PATH, "rb") as f:
             platt_cal = pickle.load(f)
 
-    if FORECAST_HISTORY_PATH.exists() and not forecast_history_cache:
+    if FORECAST_HISTORY_PATH.exists() and not _history_loaded:
         with open(FORECAST_HISTORY_PATH, "r") as f:
             for line in f:
                 line = line.strip()
                 if line:
                     forecast_history_cache.append(json.loads(line))
+        _history_loaded = True
 
 
 def fetch_live_session_candles() -> List[Dict[str, Any]]:
@@ -169,11 +219,62 @@ def fetch_live_session_candles() -> List[Dict[str, Any]]:
     return []
 
 
+def _restore_last_session_snapshot() -> bool:
+    """Restore the last completed session snapshot (2026-11-11, +16.97 pts) while today's market is closed."""
+    global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache, showing_archived_session
+    if not LAST_SESSION_SNAPSHOT_PATH.exists():
+        return False
+
+    with open(LAST_SESSION_SNAPSHOT_PATH, "r") as f:
+        snap = json.load(f)
+
+    cutoff_ts = pd.to_datetime(snap["cutoff_timestamp"], utc=True)
+    if LAST_SESSION_CANDLES_PATH.exists():
+        arch_df = pd.read_parquet(LAST_SESSION_CANDLES_PATH)
+        arch_df["timestamp"] = pd.to_datetime(arch_df["timestamp"], utc=True)
+        arch_df = arch_df[arch_df["timestamp"] <= cutoff_ts].copy()
+        if not arch_df.empty:
+            if candles_cache is not None and not candles_cache.empty:
+                last_canon_ts = pd.to_datetime(candles_cache["timestamp"].max(), utc=True)
+                arch_df = arch_df[arch_df["timestamp"] > last_canon_ts]
+                if not arch_df.empty:
+                    candles_cache = pd.concat([candles_cache, arch_df], ignore_index=True)
+            else:
+                candles_cache = arch_df
+
+    live_directional_matrix = dict(snap["matrix"])
+    live_paper_engine = _new_live_paper_engine()
+    for t in snap.get("trades", []):
+        live_paper_engine.trades.append(
+            Trade(
+                trade_id=str(t["trade_id"]),
+                entry_time=datetime.fromisoformat(t["entry_time"]),
+                exit_time=datetime.fromisoformat(t["exit_time"]) if t.get("exit_time") else None,
+                position=PositionState(t["position"]),
+                entry_price=float(t["entry_price"]),
+                exit_price=float(t["exit_price"]) if t.get("exit_price") is not None else None,
+                units=float(t.get("units", 1.0)),
+                gross_pnl=float(t["gross_pnl"]),
+                net_pnl=float(t["net_pnl"]),
+                is_closed=bool(t.get("is_closed", True)),
+            )
+        )
+        live_paper_engine.processed_forecast_ids.add(str(t["trade_id"]))
+
+    forecast_history_cache = list(snap.get("forecast_history", []))
+    if candles_cache is not None and not candles_cache.empty:
+        pending_forecast = _generate_forecast_for_window(candles_cache, candles_cache.iloc[-1], status="PENDING")
+    showing_archived_session = True
+    return True
+
+
 def init_live_session():
     """Initialize today's live session by sequentially executing all completed 5m bars since market open."""
-    global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache
+    global candles_cache, pending_forecast, live_directional_matrix, live_paper_engine, forecast_history_cache, showing_archived_session, _history_loaded
     load_resources()
     forecast_history_cache.clear()
+    _history_loaded = True
+    showing_archived_session = False
 
     # Reset live tracking state to start fresh from 0 for today's market session
     live_directional_matrix = {
@@ -191,15 +292,7 @@ def init_live_session():
         "note": "0 completed bars evaluated in live session (+1 every 5 min)",
     }
 
-    live_paper_engine = PaperTradingEngine(
-        synthetic_point_value=1.0,
-        cost_per_side_points=0.15,
-        slippage_points=0.0,
-        max_units=1.0,
-        take_profit_points=3.0,
-        stop_loss_points=1.5,
-        max_bars_held=6,
-    )
+    live_paper_engine = _new_live_paper_engine()
 
     # Base candles cache contains historical data prior to today's date in New York
     today_ny_date = pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
@@ -225,6 +318,15 @@ def init_live_session():
     today_candles = sorted(today_candles, key=lambda x: x["timestamp"])
 
     if today_candles:
+        # Include recent archived prior-day candles for continuous VWAP/ATR/OR warmup
+        if LAST_SESSION_CANDLES_PATH.exists() and candles_cache is not None and not candles_cache.empty:
+            arch_df = pd.read_parquet(LAST_SESSION_CANDLES_PATH)
+            arch_df["timestamp"] = pd.to_datetime(arch_df["timestamp"], utc=True)
+            last_canon_ts = pd.to_datetime(candles_cache["timestamp"].max(), utc=True)
+            arch_df = arch_df[(arch_df["timestamp"] > last_canon_ts) & (arch_df["timestamp"] < cutoff_date)]
+            if not arch_df.empty:
+                candles_cache = pd.concat([candles_cache, arch_df], ignore_index=True)
+
         # First candle seeds the initial pending forecast
         first_c = today_candles[0]
         candles_cache = pd.concat([candles_cache, pd.DataFrame([first_c])], ignore_index=True)
@@ -234,6 +336,17 @@ def init_live_session():
         for c in today_candles[1:]:
             process_new_candle(c)
     else:
+        # Market closed or no live candles today: restore the last completed session snapshot!
+        if _restore_last_session_snapshot():
+            return
+        # Prepare cleanly from 0 for the upcoming/new Option A session with full prior-day candles
+        if LAST_SESSION_CANDLES_PATH.exists() and candles_cache is not None and not candles_cache.empty:
+            arch_df = pd.read_parquet(LAST_SESSION_CANDLES_PATH)
+            arch_df["timestamp"] = pd.to_datetime(arch_df["timestamp"], utc=True)
+            last_canon_ts = pd.to_datetime(candles_cache["timestamp"].max(), utc=True)
+            arch_df = arch_df[(arch_df["timestamp"] > last_canon_ts) & (arch_df["timestamp"] < cutoff_date)]
+            if not arch_df.empty:
+                candles_cache = pd.concat([candles_cache, arch_df], ignore_index=True)
         if candles_cache is not None and not candles_cache.empty:
             latest = candles_cache.iloc[-1]
             pending_forecast = _generate_forecast_for_window(candles_cache, latest, status="PENDING")
@@ -274,6 +387,120 @@ def _bootstrap_recent_forecasts(count: int = 20):
         _generate_forecast_for_window(sub, candle, status="RESOLVED")
 
 
+def _compute_realized_vol_30m(df_window: pd.DataFrame, fallback_bar_vol: float) -> float:
+    """Computes annualized-aligned 30m (6-bar) return standard deviation with ATR floor."""
+    closes = df_window["close"].astype(float)
+    if len(closes) >= 12:
+        log_rets = np.log(closes / closes.shift(1)).dropna().tail(36)
+        if len(log_rets) >= 6:
+            rv_30m = float(log_rets.std(ddof=1) * np.sqrt(6.0))
+            return max(rv_30m, float(fallback_bar_vol) * np.sqrt(6.0), 1e-4)
+    return max(float(fallback_bar_vol) * np.sqrt(6.0), 1e-4)
+
+
+def _evaluate_random_forest_window(df_window: pd.DataFrame) -> Dict[str, Any]:
+    window = df_window.tail(260).copy() if len(df_window) > 260 else df_window.copy()
+    v2_eval = spx_v2_model.evaluate_window(window)
+    v2_raw = float(v2_eval.get("raw_score", 0.0))
+    v2_norm = float(np.clip(v2_raw / 3.50, -1.0, 1.0))
+    v2_tel = v2_eval.get("telemetry", {})
+    regime = v2_eval.get("regime_label", "TREND")
+
+    rf = _get_random_forest_model()
+    if rf is not None:
+        feat_df = feature_pipeline.compute_features(window)
+        last_feat = feat_df.iloc[[-1]]
+        preds = rf.predict(last_feat)
+        ml_r1 = float(preds["r_1"][0])
+        p_close_up = float(preds["p_close_up"][0])
+        ml_path30 = float(preds["r_path_30m"][0])
+        cal_p_touch = float(preds["p_touch_up"][0])
+        raw_p_touch = float(preds.get("raw_p_touch_up", preds["p_touch_up"])[0])
+
+        ml_score = float(
+            0.50 * (p_close_up - 0.50) * 4.0
+            + 0.30 * np.clip(ml_r1 * 2500.0, -2.0, 2.0)
+            + 0.20 * np.clip(ml_path30 * 1000.0, -2.0, 2.0)
+        )
+        hybrid_score = float(0.55 * ml_score + 0.45 * v2_norm)
+    else:
+        opt_a = _get_option_a_model().evaluate_window(window)
+        return opt_a
+
+    in_entry = bool(v2_tel.get("in_entry_window", True))
+    vol_ok = bool(v2_tel.get("vol_ok", True))
+    can_trade = in_entry and vol_ok
+
+    if can_trade and hybrid_score >= 0.32 and ml_score >= 0.04:
+        action = "LONG"
+        direction = "UP"
+        reason = f"RF_HYBRID_LONG (hybrid={hybrid_score:+.2f}, ml={ml_score:+.2f})"
+    elif can_trade and hybrid_score <= -0.32 and ml_score <= -0.04:
+        action = "SHORT"
+        direction = "DOWN"
+        reason = f"RF_HYBRID_SHORT (hybrid={hybrid_score:+.2f}, ml={ml_score:+.2f})"
+    else:
+        action = "HOLD"
+        direction = "UP" if hybrid_score >= 0.0 else "DOWN"
+        reason = f"RF_HYBRID_HOLD (hybrid={hybrid_score:+.2f}, ml={ml_score:+.2f})"
+
+    ref_price = float(window.iloc[-1]["close"])
+    expected_price_5m = float(ref_price * (1.0 + ml_r1))
+    terminal_30m = float(ref_price * (1.0 + ml_path30))
+    path_30m_steps = [
+        {
+            "horizon_minutes": (i + 1) * 5,
+            "expected_close": round(expected_price_5m * (1.0 - i / 5.0) + terminal_30m * (i / 5.0), 2),
+        }
+        for i in range(6)
+    ]
+    tp_pts = float(v2_eval.get("tp_points", 3.0))
+    sl_pts = float(v2_eval.get("sl_points", 1.5))
+    pred_high_30m = float(ref_price + max(tp_pts, abs(terminal_30m - ref_price)))
+    pred_low_30m = float(ref_price - max(sl_pts, abs(terminal_30m - ref_price)))
+    vol_30m = float(v2_eval.get("volatility_30m", 0.0008))
+
+    telemetry = {
+        "model_architecture": "Random Forest Hybrid (110 Trees)",
+        "model_slug": "random_forest",
+        "hybrid_score": round(float(hybrid_score), 4),
+        "ml_score": round(float(ml_score), 4),
+        "v2_norm": round(float(v2_norm), 4),
+        "p_close_up": round(float(p_close_up), 4),
+        "r_1": round(float(ml_r1), 6),
+        "r_path_30m": round(float(ml_path30), 6),
+        "calibrated_touch_prob": round(float(cal_p_touch), 4),
+        "raw_touch_prob": round(float(raw_p_touch), 4),
+        "in_entry_window": in_entry,
+        "vol_ok": vol_ok,
+        "trees_count": 110,
+    }
+
+    return {
+        "raw_score": hybrid_score,
+        "score_confidence": cal_p_touch,
+        "p_touch_up_next_5m": cal_p_touch,
+        "raw_p_touch_up": raw_p_touch,
+        "action": action,
+        "regime_label": regime,
+        "direction": direction,
+        "expected_price_5m": expected_price_5m,
+        "path_30m": path_30m_steps,
+        "terminal_price_30m": round(terminal_30m, 2),
+        "r_path_30m": ml_path30,
+        "predicted_high_30m": pred_high_30m,
+        "predicted_low_30m": pred_low_30m,
+        "volatility_30m": vol_30m,
+        "tp_points": tp_pts,
+        "sl_points": sl_pts,
+        "decision_reason": reason,
+        "telemetry": telemetry,
+        "expected_return_5m": ml_r1,
+        "conformal_half_width": max(tp_pts, sl_pts),
+        "model_version": "spx_random_forest_v2_hybrid",
+    }
+
+
 def _generate_forecast_for_window(
     df_window: pd.DataFrame,
     latest_candle: pd.Series,
@@ -283,25 +510,52 @@ def _generate_forecast_for_window(
     ts = pd.to_datetime(latest_candle["timestamp"]).to_pydatetime()
     f_id = f"fc_{ts.strftime('%Y%m%d%H%M')}"
 
-    # Evaluate using retrained SPX Adaptive AI v2 model
-    v2_eval = spx_v2_model.evaluate_window(df_window)
+    # Evaluate using Random Forest Hybrid (110 Trees + Platt + Adaptive v2)
+    rf_eval = _evaluate_random_forest_window(df_window)
 
-    raw_score = v2_eval["raw_score"]
-    score_conf = v2_eval["score_confidence"]
-    action_to_record = v2_eval["action"]
-    regime = v2_eval["regime_label"]
-    direction = v2_eval["direction"]
-    expected_price_5m = v2_eval["expected_price_5m"]
-    path_30m = v2_eval["path_30m"]
-    pred_high_30m = v2_eval["predicted_high_30m"]
-    pred_low_30m = v2_eval["predicted_low_30m"]
-    vol_30m = v2_eval["volatility_30m"]
-    tp_pts = v2_eval["tp_points"]
-    sl_pts = v2_eval["sl_points"]
-    reason_to_record = v2_eval["decision_reason"]
+    raw_score = rf_eval["raw_score"]
+    p_touch_cal = float(rf_eval.get("p_touch_up_next_5m", rf_eval["score_confidence"]))
+    raw_p_touch = float(rf_eval.get("raw_p_touch_up", p_touch_cal))
+    action_to_record = rf_eval["action"]
+    regime = rf_eval["regime_label"]
+    direction = rf_eval["direction"]
+    expected_price_5m = rf_eval["expected_price_5m"]
+    terminal_30m = float(rf_eval.get("terminal_price_30m", expected_price_5m))
+    pred_high_30m = rf_eval["predicted_high_30m"]
+    pred_low_30m = rf_eval["predicted_low_30m"]
+    vol_30m = rf_eval["volatility_30m"]
+    tp_pts = rf_eval["tp_points"]
+    sl_pts = rf_eval["sl_points"]
+    reason_to_record = rf_eval["decision_reason"]
+    telemetry = rf_eval.get("telemetry", {})
+
+    sigma_30m_frac = _compute_realized_vol_30m(df_window, vol_30m)
+    quant_snapshot = compute_live_quant_snapshot(
+        current_price=ref_price,
+        expected_return_5m=rf_eval.get("expected_return_5m", 0.0),
+        realized_vol_30m=sigma_30m_frac,
+        tp_points=tp_pts,
+        sl_points=sl_pts,
+    )
+
+    # 6-step 30m path blended with Monte Carlo simulation
+    mc_median = quant_snapshot.get("mc_median_path", []) if quant_snapshot else []
+    path_30m_steps = []
+    for i in range(6):
+        m = (i + 1) * 5
+        weight = i / 5.0
+        ml_step = expected_price_5m * (1.0 - weight) + terminal_30m * weight
+        if len(mc_median) > i:
+            step_val = 0.70 * ml_step + 0.30 * float(mc_median[i])
+        else:
+            step_val = ml_step
+        path_30m_steps.append({
+            "horizon_minutes": m,
+            "expected_close": round(step_val, 2),
+        })
 
     # Conformal envelope centered on expected price
-    half_width = max(tp_pts, sl_pts)
+    half_width = float(rf_eval.get("conformal_half_width", max(tp_pts, sl_pts)))
     lower_price = expected_price_5m - half_width
     upper_price = expected_price_5m + half_width
 
@@ -309,12 +563,13 @@ def _generate_forecast_for_window(
         "forecast_id": f_id,
         "as_of": ts.isoformat(),
         "reference_price": round(ref_price, 2),
-        "p_touch_up_next_5m": round(score_conf, 4),
-        "raw_p_touch_up": round(score_conf, 4),
+        "p_touch_up_next_5m": round(p_touch_cal, 4),
+        "raw_p_touch_up": round(raw_p_touch, 4),
         "expected_price_next_5m": round(expected_price_5m, 2),
         "direction": direction,
         "raw_score": raw_score,
-        "path_30m": path_30m,
+        "path_30m": path_30m_steps,
+        "terminal_price_30m": round(terminal_30m, 2),
         "predicted_high_30m": round(pred_high_30m, 2),
         "predicted_low_30m": round(pred_low_30m, 2),
         "volatility_30m": round(vol_30m, 6),
@@ -329,7 +584,9 @@ def _generate_forecast_for_window(
         "decision_reason": reason_to_record,
         "tp_points": tp_pts,
         "sl_points": sl_pts,
-        "model_version": "spx_adaptive_v2",
+        "telemetry": telemetry,
+        "quant": quant_snapshot,
+        "model_version": "spx_random_forest_v2_hybrid",
         "data_source": "canonical_spx",
         "status": status,
     }
@@ -434,6 +691,34 @@ def process_new_candle(candle_dict: Dict[str, Any]):
     pending_forecast = next_fc
 
 
+def _sync_candles_cache_with_live(live_candles: List[Dict[str, Any]]) -> bool:
+    """Sync candles_cache with actual OHLCV from live data, fixing flat 1-tick bars."""
+    global candles_cache
+    if candles_cache is None or candles_cache.empty or not live_candles:
+        return False
+    live_map = {pd.to_datetime(c["timestamp"], utc=True): c for c in live_candles}
+    updated = False
+    for idx in candles_cache.index:
+        ts = pd.to_datetime(candles_cache.at[idx, "timestamp"], utc=True)
+        if ts in live_map:
+            c = live_map[ts]
+            h_curr = float(candles_cache.at[idx, "high"])
+            l_curr = float(candles_cache.at[idx, "low"])
+            h_live = float(c["high"])
+            l_live = float(c["low"])
+            c_live = float(c["close"])
+            v_live = float(c["volume"])
+            o_live = float(c["open"])
+            if (h_curr == l_curr and h_live != l_live) or (h_curr != h_live) or (l_curr != l_live) or (float(candles_cache.at[idx, "close"]) != c_live):
+                candles_cache.at[idx, "open"] = o_live
+                candles_cache.at[idx, "high"] = h_live
+                candles_cache.at[idx, "low"] = l_live
+                candles_cache.at[idx, "close"] = c_live
+                candles_cache.at[idx, "volume"] = v_live
+                updated = True
+    return updated
+
+
 async def live_market_engine_loop():
     """Background worker polling every 5s to catch real completed 5m bars during active sessions."""
     while True:
@@ -442,15 +727,51 @@ async def live_market_engine_loop():
             if candles_cache is not None and not candles_cache.empty:
                 live_candles = fetch_live_session_candles()
                 if live_candles:
+                    synced = _sync_candles_cache_with_live(live_candles)
                     last_known_ts = pd.to_datetime(candles_cache["timestamp"].iloc[-1], utc=True)
                     new_candles = [
                         c for c in live_candles
                         if pd.to_datetime(c["timestamp"], utc=True) > last_known_ts
                     ]
                     new_candles = sorted(new_candles, key=lambda x: x["timestamp"])
-                    for candle_dict in new_candles:
-                        process_new_candle(candle_dict)
-                        await broadcast_tick()
+                    if new_candles:
+                        first_new_ts = pd.to_datetime(new_candles[0]["timestamp"], utc=True)
+                        if showing_archived_session or (
+                            to_new_york(first_new_ts).strftime("%Y-%m-%d")
+                            != to_new_york(last_known_ts).strftime("%Y-%m-%d")
+                        ):
+                            init_live_session()
+                            await broadcast_tick()
+                            continue
+
+                        # Finalize previous candle with latest data before advancing
+                        for c in live_candles:
+                            if pd.to_datetime(c["timestamp"], utc=True) == last_known_ts:
+                                last_idx = candles_cache.index[-1]
+                                candles_cache.at[last_idx, "open"] = float(c["open"])
+                                candles_cache.at[last_idx, "high"] = float(c["high"])
+                                candles_cache.at[last_idx, "low"] = float(c["low"])
+                                candles_cache.at[last_idx, "close"] = float(c["close"])
+                                candles_cache.at[last_idx, "volume"] = float(c["volume"])
+                                break
+
+                        for candle_dict in new_candles:
+                            process_new_candle(candle_dict)
+                            await broadcast_tick()
+                    else:
+                        # Update current in-progress candle
+                        curr_bar = live_candles[-1]
+                        if pd.to_datetime(curr_bar["timestamp"], utc=True) == last_known_ts:
+                            last_idx = candles_cache.index[-1]
+                            curr_h = max(float(candles_cache.at[last_idx, "high"]), float(curr_bar["high"]))
+                            curr_l = min(float(candles_cache.at[last_idx, "low"]), float(curr_bar["low"])) if float(candles_cache.at[last_idx, "low"]) > 0 else float(curr_bar["low"])
+                            candles_cache.at[last_idx, "high"] = curr_h
+                            candles_cache.at[last_idx, "low"] = curr_l
+                            candles_cache.at[last_idx, "close"] = float(curr_bar["close"])
+                            candles_cache.at[last_idx, "volume"] = float(curr_bar["volume"])
+                            await broadcast_tick()
+                        elif synced:
+                            await broadcast_tick()
         except Exception:
             pass
 
@@ -493,23 +814,40 @@ def get_latest_market():
         return {"error": "Market data unavailable"}
 
     latest = candles_cache.iloc[-1]
-    prev_close = candles_cache.iloc[-2]["close"] if len(candles_cache) > 1 else latest["open"]
-    change = float(latest["close"] - prev_close)
-    pct_change = float((change / prev_close) * 100.0)
-
     ts = pd.to_datetime(latest["timestamp"])
     ny_time = to_new_york(ts.to_pydatetime())
+    today_ny_str = ny_time.strftime("%Y-%m-%d")
+
+    # Session change relative to session open
+    session_open = float(latest["open"])
+    try:
+        ts_series = pd.to_datetime(candles_cache["timestamp"])
+        if ts_series.dt.tz is None:
+            ts_series = ts_series.dt.tz_localize("UTC")
+        ts_ny = ts_series.dt.tz_convert(ny_time.tzinfo)
+        day_bars = candles_cache[ts_ny.dt.strftime("%Y-%m-%d") == today_ny_str]
+        if not day_bars.empty:
+            session_open = float(day_bars.iloc[0]["open"])
+    except Exception:
+        pass
+
+    change = float(latest["close"] - session_open)
+    pct_change = float((change / session_open) * 100.0) if session_open > 0 else 0.0
     is_live_session = is_regular_session(datetime.now(timezone.utc))
 
-    source_name = "LSE Live Feed" if latest.get("source") == "lse" else latest.get("source", "canonical")
-    freshness = "realtime_lse" if latest.get("source") == "lse" else ("delayed_15m" if latest.get("source") == "yahoo_finance" else "historical_canonical")
+    source_val = latest.get("source")
+    source_name = "LSE Live Feed" if str(source_val) == "lse" else (str(source_val) if pd.notna(source_val) else "canonical")
+    freshness = "realtime_lse" if source_name == "LSE Live Feed" else ("delayed_15m" if source_name == "yahoo_finance" else "historical_canonical")
     if not is_live_session:
         freshness = "weekend_closed" if ny_time.weekday() >= 5 else "market_closed"
+
+    prov_sym = latest.get("provider_symbol")
+    prov_sym_str = str(prov_sym) if pd.notna(prov_sym) else ("SPX" if source_name == "LSE Live Feed" else "^GSPC")
 
     return {
         "instrument": "SPX",
         "display_name": "S&P 500 Index",
-        "provider_symbol": latest.get("provider_symbol", "SPX" if latest.get("source") == "lse" else "^GSPC"),
+        "provider_symbol": prov_sym_str,
         "latest_price": float(latest["close"]),
         "open": float(latest["open"]),
         "high": float(latest["high"]),
@@ -536,13 +874,20 @@ def get_candles(interval: str = "5m", limit: int = 100):
     out = []
     for _, r in subset.iterrows():
         ts = pd.to_datetime(r["timestamp"])
+        o = float(r["open"])
+        c = float(r["close"])
+        h = max(float(r["high"]), o, c)
+        l = min(float(r["low"]), o, c)
+        if h == l:
+            h += 0.25
+            l -= 0.25
         out.append(
             {
                 "time": int(ts.timestamp()),
-                "open": float(r["open"]),
-                "high": float(r["high"]),
-                "low": float(r["low"]),
-                "close": float(r["close"]),
+                "open": o,
+                "high": h,
+                "low": l,
+                "close": c,
                 "volume": float(r["volume"]) if pd.notnull(r.get("volume")) else None,
             }
         )
@@ -554,8 +899,36 @@ def get_latest_forecast():
     global pending_forecast
     load_resources()
     if pending_forecast is not None:
+        if (
+            "telemetry" not in pending_forecast
+            or "quant" not in pending_forecast
+            or not isinstance(pending_forecast.get("path_30m"), list)
+            or pending_forecast.get("model_version") != "spx_random_forest_v2_hybrid"
+        ) and candles_cache is not None and not candles_cache.empty:
+            rf_eval = _evaluate_random_forest_window(candles_cache)
+            ref_p = float(pending_forecast.get("reference_price") or candles_cache.iloc[-1]["close"])
+            vol_30m = float(pending_forecast.get("volatility_30m") or rf_eval.get("volatility_30m", 0.0008))
+            sigma_30m_frac = _compute_realized_vol_30m(candles_cache, vol_30m)
+            pending_forecast["telemetry"] = rf_eval.get("telemetry", {})
+            pending_forecast["model_version"] = "spx_random_forest_v2_hybrid"
+            pending_forecast["quant"] = compute_live_quant_snapshot(
+                current_price=ref_p,
+                expected_return_5m=float(rf_eval.get("expected_return_5m", 0.0)),
+                realized_vol_30m=sigma_30m_frac,
+                tp_points=float(pending_forecast.get("tp_points") or rf_eval.get("tp_points", 3.0)),
+                sl_points=float(pending_forecast.get("sl_points") or rf_eval.get("sl_points", 1.5)),
+            )
+            pending_forecast["action"] = rf_eval["action"]
+            pending_forecast["direction"] = rf_eval["direction"]
+            pending_forecast["decision_reason"] = rf_eval["decision_reason"]
+            pending_forecast["expected_price_next_5m"] = round(rf_eval["expected_price_5m"], 2)
+            pending_forecast["path_30m"] = rf_eval["path_30m"]
+            pending_forecast["predicted_high_30m"] = round(rf_eval["predicted_high_30m"], 2)
+            pending_forecast["predicted_low_30m"] = round(rf_eval["predicted_low_30m"], 2)
+            pending_forecast["p_touch_up_next_5m"] = round(rf_eval["p_touch_up_next_5m"], 4)
+            pending_forecast["raw_score"] = rf_eval["raw_score"]
         return pending_forecast
-    if candles_cache is None or lgb_model is None or candles_cache.empty:
+    if candles_cache is None or candles_cache.empty:
         return {"error": "Model or data unavailable"}
 
     latest_candle = candles_cache.iloc[-1]
@@ -652,15 +1025,55 @@ def get_performance():
     )
 
     backtest_ref = {
-        "net_pnl_pts": 117.90,
-        "gross_pnl_pts": 163.50,
-        "win_rate_pct": 57.2,
-        "profit_factor": 2.01,
-        "max_drawdown_pts": 10.80,
-        "total_trades": 152,
-        "avg_win_pts": 2.70,
-        "avg_loss_pts": 1.80,
+        "net_pnl_pts": 222.48,
+        "gross_pnl_pts": 325.08,
+        "win_rate_pct": 45.91,
+        "profit_factor": 1.184,
+        "max_drawdown_pts": 82.52,
+        "total_trades": 342,
+        "avg_win_pts": 9.12,
+        "avg_loss_pts": 6.54,
     }
+
+    # Build chronological equity & underwater drawdown series
+    equity_curve = [
+        {"idx": 0, "label": "Start", "trade_pnl": 0.0, "cum_pnl": 0.0, "drawdown": 0.0, "position": "FLAT"}
+    ]
+    cum_val = 0.0
+    peak_val = 0.0
+    for idx_t, t in enumerate(live_paper_engine.trades, start=1):
+        cum_val += float(t.net_pnl)
+        peak_val = max(peak_val, cum_val)
+        dd_val = -(peak_val - cum_val)
+        exit_lbl = t.exit_time.strftime("%m/%d %H:%M") if hasattr(t.exit_time, "strftime") else f"T{idx_t}"
+        equity_curve.append({
+            "idx": idx_t,
+            "label": exit_lbl,
+            "trade_pnl": round(float(t.net_pnl), 2),
+            "cum_pnl": round(cum_val, 2),
+            "drawdown": round(dd_val, 2),
+            "position": t.position.value,
+        })
+
+    if live_paper_engine.active_trade is not None:
+        cum_live = cum_val + floating_net
+        peak_live = max(peak_val, cum_live)
+        equity_curve.append({
+            "idx": len(equity_curve),
+            "label": "Live MTM",
+            "trade_pnl": round(floating_net, 2),
+            "cum_pnl": round(cum_live, 2),
+            "drawdown": round(-(peak_live - cum_live), 2),
+            "position": live_paper_engine.current_position.value,
+        })
+
+    hold_count = sum(1 for r in forecast_history_cache if str(r.get("action", "HOLD")).upper() == "HOLD")
+    hist_total = len(forecast_history_cache)
+    live_abstention_pct = round((hold_count * 100.0 / hist_total), 1) if hist_total > 0 else 82.5
+
+    wr_dec = summary.win_rate if summary.total_trades > 0 else 0.0
+    expectancy_pts = round(wr_dec * avg_win + (1.0 - wr_dec) * avg_loss, 2) if summary.total_trades > 0 else 0.0
+    payoff_ratio = round(avg_win / abs(avg_loss), 2) if avg_loss < 0 else (round(avg_win, 2) if avg_win > 0 else 0.0)
 
     return {
         "mode": "live_session",
@@ -677,9 +1090,12 @@ def get_performance():
         "max_drawdown_pts": round(summary.max_drawdown, 2),
         "avg_win_pts": avg_win,
         "avg_loss_pts": avg_loss,
+        "expectancy_pts": expectancy_pts,
+        "payoff_ratio": payoff_ratio,
         "position_state": live_paper_engine.current_position.value,
         "active_trade": active_trade_info,
-        "abstention_rate_pct": 82.5,
+        "abstention_rate_pct": live_abstention_pct,
+        "equity_curve": equity_curve,
         "synthetic_point_multiplier": 1.0,
         "currency": "SPX index points",
         "backtest_reference": backtest_ref,
@@ -688,7 +1104,9 @@ def get_performance():
 
 @app.get("/api/evaluation/stats")
 def get_evaluation_stats():
-    eval_path = Path("artifacts/final_evaluation_stats.json")
+    eval_path = Path("artifacts/models/evaluation_stats/final_evaluation_stats.json")
+    if not eval_path.exists():
+        eval_path = Path("artifacts/final_evaluation_stats.json")
     base_stats = {}
     if eval_path.exists():
         with open(eval_path, "r") as f:
@@ -787,12 +1205,15 @@ async def manual_tick(simulate: bool = False):
 @app.post("/api/live/reset")
 async def reset_live_session(retest: bool = False):
     """Reset live confusion matrix to 0 and paper trading engine to flat.
-    If retest=True, immediately re-runs the live session across completed bars using SPX Adaptive v2.
+    If retest=True, immediately re-runs the live session across completed bars using Option A ML.
     """
-    global live_directional_matrix, live_paper_engine, pending_forecast
+    global live_directional_matrix, live_paper_engine, pending_forecast, showing_archived_session, forecast_history_cache, _history_loaded
     if retest:
         init_live_session()
     else:
+        showing_archived_session = False
+        forecast_history_cache.clear()
+        _history_loaded = True
         live_directional_matrix = {
             "name": "Live Session (Dynamic)",
             "tag": "Dynamic Session",
@@ -807,15 +1228,16 @@ async def reset_live_session(retest: bool = False):
             "f1_score": 0.0,
             "note": "0 completed bars evaluated in live session (+1 every 5 min)",
         }
-        live_paper_engine = PaperTradingEngine(
-            synthetic_point_value=1.0,
-            cost_per_side_points=0.15,
-            slippage_points=0.0,
-            max_units=1.0,
-            take_profit_points=3.0,
-            stop_loss_points=1.5,
-            max_bars_held=6,
-        )
+        live_paper_engine = _new_live_paper_engine()
+        if LAST_SESSION_CANDLES_PATH.exists() and candles_cache is not None and not candles_cache.empty:
+            today_ny_date = pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
+            cutoff_date = pd.to_datetime(f"{today_ny_date} 00:00:00-05:00", utc=True)
+            last_cached_ts = pd.to_datetime(candles_cache["timestamp"].max(), utc=True)
+            arch_df = pd.read_parquet(LAST_SESSION_CANDLES_PATH)
+            arch_df["timestamp"] = pd.to_datetime(arch_df["timestamp"], utc=True)
+            arch_df = arch_df[(arch_df["timestamp"] > last_cached_ts) & (arch_df["timestamp"] < cutoff_date)]
+            if not arch_df.empty:
+                globals()["candles_cache"] = pd.concat([candles_cache, arch_df], ignore_index=True)
         if candles_cache is not None and not candles_cache.empty:
             pending_forecast = _generate_forecast_for_window(candles_cache, candles_cache.iloc[-1], status="PENDING")
     await broadcast_tick()
@@ -824,7 +1246,7 @@ async def reset_live_session(retest: bool = False):
 
 @app.post("/api/live/retest")
 async def run_live_retest():
-    """Reset to 0 and live test SPX Adaptive v2 across all completed bars."""
+    """Reset to 0 and live test Option A (LightGBM + Platt + Adaptive v2) across all completed bars."""
     init_live_session()
     await broadcast_tick()
     return {"status": "retested", "matrix": live_directional_matrix, "performance": get_performance()}

@@ -1,0 +1,172 @@
+{
+  "generated_at": "2026-11-12T11:43:40.823271+00:00",
+  "manifest": {
+    "lgb_path": "/Users/prateekgupta/Desktop/SnP-Axiom/artifacts/models/lightgbm_benchmark.pkl",
+    "lgb_sha256": "194f26e7590c0fe41d982f2cd4217e9e1151cf40c8072bb6fa9d0e3d7825ef68",
+    "lgb_total_trees": 1300,
+    "lgb_feature_count": 36,
+    "lgb_model_heads": [
+      "r_1",
+      "r_path_10m",
+      "r_path_15m",
+      "r_path_20m",
+      "r_path_25m",
+      "r_path_30m",
+      "r_path_5m",
+      "rv_30",
+      "y_close_up",
+      "y_eod",
+      "y_high30",
+      "y_low30",
+      "y_touch_up"
+    ],
+    "platt_path": "/Users/prateekgupta/Desktop/SnP-Axiom/artifacts/models/calibrator_platt.pkl",
+    "platt_sha256": "7427225e19504fa8db57a777969a2f201a7825014a69b99a7242a89307c6c154",
+    "platt_coef": 0.4410869600012377,
+    "platt_intercept": 1.5941796620199553,
+    "interval_path": "/Users/prateekgupta/Desktop/SnP-Axiom/artifacts/models/interval_calibrator.pkl",
+    "interval_sha256": "9838ccae046ed1c1d9f49df8945e64a4cd73b369a15027f518cea0dd5028ad7d",
+    "interval_q_error": 0.0010215459507280254,
+    "jev_path": "/Users/prateekgupta/Desktop/SnP-Axiom/artifacts/models/open_jev_weights.pt",
+    "jev_sha256": "e516de82a96505235e8c2718283acf4437996c65d3bb1af3f34a817d026e6f35",
+    "jev_param_count": 1022805,
+    "jev_tensor_count": 132
+  },
+  "dataset": {
+    "path": "/Users/prateekgupta/Desktop/SnP-Axiom/data/processed/spx_5m_canonical.parquet",
+    "total_rows": 72681,
+    "eval_start": "2026-10-19 17:30:00+00:00",
+    "eval_end": "2026-11-09 20:55:00+00:00"
+  },
+  "backtest_comparison": {
+    "eval_bars": 1199,
+    "adaptive_v2_only": {
+      "actions": {
+        "LONG": 244,
+        "SHORT": 253,
+        "HOLD": 702
+      },
+      "direction_accuracy": 0.5071,
+      "r1_rmse": 0.0010992,
+      "paper_trading": {
+        "total_trades": 111,
+        "winning_trades": 46,
+        "losing_trades": 65,
+        "win_rate": 0.4144144144144144,
+        "gross_pnl": 266.61999999997533,
+        "net_pnl": 188.9199999999754,
+        "profit_factor": 1.3785213384090773,
+        "max_drawdown": 120.52000000000771,
+        "avg_trade_pnl": 1.7019819819817603
+      }
+    },
+    "hybrid_adaptive_v2_ml": {
+      "actions": {
+        "LONG": 250,
+        "SHORT": 115,
+        "HOLD": 834
+      },
+      "direction_accuracy": 0.4996,
+      "r1_rmse": 0.0011004,
+      "ml_vetoed_v2_trades": 113,
+      "ml_lead_trades": 77,
+      "paper_trading": {
+        "total_trades": 133,
+        "winning_trades": 56,
+        "losing_trades": 77,
+        "win_rate": 0.42105263157894735,
+        "gross_pnl": 61.44999999995707,
+        "net_pnl": -31.650000000042905,
+        "profit_factor": 0.9458891111452321,
+        "max_drawdown": 146.91000000000807,
+        "avg_trade_pnl": -0.23796992481235266
+      }
+    },
+    "recent_traces": [
+      {
+        "timestamp": "2026-11-09T20:30:00+00:00",
+        "close": 7569.5,
+        "regime": "TREND",
+        "adaptive_action": "LONG",
+        "adaptive_score": 3.55,
+        "ml_r1": 5e-06,
+        "ml_p_close_up": 0.5192,
+        "ml_p_touch_cal": 0.9439,
+        "jev_action": "HOLD",
+        "coupled_action": "HOLD",
+        "hybrid_score": 0.464195,
+        "final_action": "LONG",
+        "reason": "HYBRID_LONG_ML_ADAPTIVE_CONSENSUS"
+      },
+      {
+        "timestamp": "2026-11-09T20:35:00+00:00",
+        "close": 7568.39,
+        "regime": "TREND",
+        "adaptive_action": "LONG",
+        "adaptive_score": 3.55,
+        "ml_r1": 5e-06,
+        "ml_p_close_up": 0.5133,
+        "ml_p_touch_cal": 0.9379,
+        "jev_action": "HOLD",
+        "coupled_action": "HOLD",
+        "hybrid_score": 0.477887,
+        "final_action": "LONG",
+        "reason": "HYBRID_LONG_ML_ADAPTIVE_CONSENSUS"
+      },
+      {
+        "timestamp": "2026-11-09T20:40:00+00:00",
+        "close": 7562.86,
+        "regime": "TREND",
+        "adaptive_action": "LONG",
+        "adaptive_score": 3.05,
+        "ml_r1": 5e-06,
+        "ml_p_close_up": 0.5308,
+        "ml_p_touch_cal": 0.9397,
+        "jev_action": "HOLD",
+        "coupled_action": "HOLD",
+        "hybrid_score": 0.49668,
+        "final_action": "LONG",
+        "reason": "HYBRID_LONG_ML_ADAPTIVE_CONSENSUS"
+      },
+      {
+        "timestamp": "2026-11-09T20:45:00+00:00",
+        "close": 7566.15,
+        "regime": "TREND",
+        "adaptive_action": "LONG",
+        "adaptive_score": 3.05,
+        "ml_r1": 5e-06,
+        "ml_p_close_up": 0.5097,
+        "ml_p_touch_cal": 0.9256,
+        "jev_action": "HOLD",
+        "coupled_action": "HOLD",
+        "hybrid_score": 0.476048,
+        "final_action": "LONG",
+        "reason": "HYBRID_LONG_ML_ADAPTIVE_CONSENSUS"
+      },
+      {
+        "timestamp": "2026-11-09T20:50:00+00:00",
+        "close": 7555.28,
+        "regime": "TREND",
+        "adaptive_action": "HOLD",
+        "adaptive_score": 1.05,
+        "ml_r1": 3.5e-06,
+        "ml_p_close_up": 0.5311,
+        "ml_p_touch_cal": 0.9294,
+        "jev_action": "HOLD",
+        "coupled_action": "HOLD",
+        "hybrid_score": 0.329104,
+        "final_action": "LONG",
+        "reason": "HYBRID_LONG_ML_LEAD_REGIME_ALIGNED"
+      }
+    ]
+  },
+  "ml_causal_ablation": {
+    "bars_tested": 119,
+    "bars_with_nonzero_ml_score": 119,
+    "action_differences_on_ablation": 34,
+    "mean_abs_r1_shift": 1.282e-05,
+    "max_abs_r1_shift": 0.00028514,
+    "mean_abs_hybrid_score_shift": 0.091386,
+    "ml_causal_impact_verified": true
+  }
+}

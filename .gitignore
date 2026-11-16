@@ -11,9 +11,16 @@ docs/spec.md
 data/raw/
 data/processed/
 data/labels/
-!data/README.md
 datawhole.csv
 *.csv
+
+# Documentation and markdown files ignored per user request
+docs/*.md
+docs/**/*.md
+data/*.md
+data/**/*.md
+artifacts/*.md
+artifacts/**/*.md
 
 # Python
 __pycache__/

@@ -227,8 +227,18 @@ function generateForecastCandles(forecast, lastCandle) {
   const refPrice = forecast.reference_price || lastCandle.close;
 
   let steps = [];
-  if (forecast.path_30m && forecast.path_30m.length > 0) {
+  if (Array.isArray(forecast.path_30m) && forecast.path_30m.length > 0) {
     steps = forecast.path_30m;
+  } else if (typeof forecast.path_30m === 'number') {
+    const termPrice = forecast.path_30m;
+    const startPrice = forecast.expected_price_next_5m || refPrice;
+    steps = [1, 2, 3, 4, 5, 6].map((idx) => {
+      const frac = (idx - 1) / 5;
+      return {
+        horizon_minutes: idx * 5,
+        expected_close: parseFloat((startPrice * (1 - frac) + termPrice * frac).toFixed(2)),
+      };
+    });
   } else if (forecast.expected_price_next_5m) {
     steps = [{ horizon_minutes: 5, expected_close: forecast.expected_price_next_5m }];
   }
@@ -248,7 +258,7 @@ function generateForecastCandles(forecast, lastCandle) {
     const volWick = forecast.volatility_30m
       ? refPrice * (forecast.volatility_30m / Math.sqrt(6)) * 0.45
       : 0.40;
-    const wickSpread = Math.max(bodyRange * 0.30, volWick, 0.35);
+    const wickSpread = Math.max(bodyRange * 0.35, volWick, 0.45);
 
     let high = +(Math.max(open, close) + wickSpread).toFixed(2);
     let low = +(Math.min(open, close) - wickSpread).toFixed(2);
@@ -259,8 +269,8 @@ function generateForecastCandles(forecast, lastCandle) {
     if (forecast.predicted_low_30m) {
       low = Math.max(low, forecast.predicted_low_30m);
     }
-    high = Math.max(high, open, close);
-    low = Math.min(low, open, close);
+    high = Math.max(high, open, close + 0.15);
+    low = Math.min(low, open, close - 0.15);
 
     bars.push({
       time: stepTime,
@@ -309,6 +319,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     ema21: true,
     ema50: false,
     vwap: false,
+    srZones: true,
   });
   const [activeTimeframe, setActiveTimeframe] = useState('1D');
 
@@ -528,12 +539,20 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
     for (const c of candles) {
       if (!seen.has(c.time)) {
         seen.add(c.time);
+        const open = parseFloat(c.open);
+        const close = parseFloat(c.close);
+        let high = Math.max(parseFloat(c.high), open, close);
+        let low = Math.min(parseFloat(c.low), open, close);
+        if (high <= low) {
+          high += 0.25;
+          low -= 0.25;
+        }
         formatted.push({
           time: c.time,
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
+          open,
+          high,
+          low,
+          close,
           volume: c.volume || 1500000,
         });
       }
@@ -719,6 +738,82 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
       priceLinesRef.current.push(vwapLine);
     }
 
+    // Visual Multi-Timeframe Support & Resistance Zones
+    if (indicators.srZones && formatted.length > 0 && mainSeriesRef.current) {
+      let highestPrice = -Infinity;
+      let lowestPrice = Infinity;
+      const recentBars = formatted.slice(-78);
+      recentBars.forEach((c) => {
+        if (c.high > highestPrice) highestPrice = c.high;
+        if (c.low < lowestPrice) lowestPrice = c.low;
+      });
+
+      const wRes = forecast?.telemetry?.pdh ? Math.max(forecast.telemetry.pdh, highestPrice) : (highestPrice > 0 ? highestPrice : 7621.78);
+      const wSup = forecast?.telemetry?.pdl ? Math.min(forecast.telemetry.pdl, lowestPrice) : (lowestPrice < Infinity ? lowestPrice : 7499.40);
+
+      const zoneThickness = 5.0;
+
+      if (isFinite(wRes) && wRes > 0) {
+        const resLineTop = mainSeriesRef.current.createPriceLine({
+          price: parseFloat(wRes.toFixed(2)),
+          color: '#ef4444',
+          lineWidth: 2,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'Res Zone Top',
+        });
+        const resLineBot = mainSeriesRef.current.createPriceLine({
+          price: parseFloat((wRes - zoneThickness).toFixed(2)),
+          color: 'rgba(239, 68, 68, 0.70)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: false,
+          title: 'Res Zone Bot',
+        });
+        priceLinesRef.current.push(resLineTop, resLineBot);
+      }
+
+      if (isFinite(wSup) && wSup > 0) {
+        const supLineTop = mainSeriesRef.current.createPriceLine({
+          price: parseFloat((wSup + zoneThickness).toFixed(2)),
+          color: 'rgba(16, 185, 129, 0.70)',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: false,
+          title: 'Sup Zone Top',
+        });
+        const supLineBot = mainSeriesRef.current.createPriceLine({
+          price: parseFloat(wSup.toFixed(2)),
+          color: '#10b981',
+          lineWidth: 2,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: 'Sup Zone Bot',
+        });
+        priceLinesRef.current.push(supLineTop, supLineBot);
+      }
+
+      if (forecast?.telemetry?.or_high && forecast?.telemetry?.or_low) {
+        const orHighLine = mainSeriesRef.current.createPriceLine({
+          price: parseFloat(forecast.telemetry.or_high.toFixed(2)),
+          color: '#3b82f6',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: false,
+          title: 'OR High',
+        });
+        const orLowLine = mainSeriesRef.current.createPriceLine({
+          price: parseFloat(forecast.telemetry.or_low.toFixed(2)),
+          color: '#3b82f6',
+          lineWidth: 1,
+          lineStyle: LineStyle.Dotted,
+          axisLabelVisible: false,
+          title: 'OR Low',
+        });
+        priceLinesRef.current.push(orHighLine, orLowLine);
+      }
+    }
+
     // Prediction Visualizations on Graph
     if (forecast && formatted.length > 0 && mainSeriesRef.current) {
       const lastCandle = formatted[formatted.length - 1];
@@ -848,6 +943,18 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
             <div className="study-chip">
               <span className="study-title">VWAP</span>
               <span className="bb-metric-tag badge-vwap">{indicatorValues.vwap.toFixed(2)}</span>
+            </div>
+          )}
+
+          {indicators.srZones && (
+            <div className="study-chip">
+              <span className="study-title">S&amp;R Zones</span>
+              <span className="bb-metric-tag" style={{ background: '#ef444420', color: '#ef4444', borderColor: '#ef444440' }}>
+                Res {forecast?.telemetry?.pdh ? forecast.telemetry.pdh.toFixed(1) : '7621.8'}
+              </span>
+              <span className="bb-metric-tag" style={{ background: '#10b98120', color: '#10b981', borderColor: '#10b98140' }}>
+                Sup {forecast?.telemetry?.pdl ? forecast.telemetry.pdl.toFixed(1) : '7499.4'}
+              </span>
             </div>
           )}
 
@@ -1002,6 +1109,14 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
               >
                 VWAP (Session Volume)
               </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={indicators.srZones}
+                onCheckedChange={(checked) =>
+                  setIndicators((prev) => ({ ...prev, srZones: Boolean(checked) }))
+                }
+              >
+                Support &amp; Resistance (MTF Zones)
+              </DropdownMenuCheckboxItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() =>
@@ -1011,6 +1126,7 @@ export default function CandlestickChart({ candles, forecast, market, theme = 'd
                     ema21: false,
                     ema50: false,
                     vwap: false,
+                    srZones: false,
                   })
                 }
               >

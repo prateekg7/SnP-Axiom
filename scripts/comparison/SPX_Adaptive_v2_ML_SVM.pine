@@ -1,0 +1,231 @@
+//@version=6
+strategy(
+     title="SPX Adaptive v2 + Trained Support Vector Machine ML [Native Pine]",
+     shorttitle="SPX v2+SVM",
+     overlay=true,
+     initial_capital=100000,
+     default_qty_type=strategy.fixed,
+     default_qty_value=1,
+     commission_type=strategy.commission.cash_per_order,
+     commission_value=0.15,
+     slippage=0,
+     pyramiding=0,
+     calc_on_every_tick=false,
+     process_orders_on_close=false,
+     max_bars_back=500)
+
+// =============================================================================
+// METHOD 4: NATIVE SUPPORT VECTOR MACHINE (LINEAR / SGD-SVM) + ADAPTIVE v2
+// -----------------------------------------------------------------------------
+// Model: Maximum-Margin Hyperplane (SGDClassifier & SGDRegressor)
+// Weights mathematically pre-folded with StandardScaler parameters. Ultra-fast dot product.
+// Platt Calibrator: coef=0.34444747, intercept=1.82005406
+// =============================================================================
+
+grpSess = "Session"
+tz              = input.string("America/New_York", "Session timezone", group=grpSess)
+entrySession    = input.session("0935-1550:23456", "Entry window", group=grpSess)
+flatSession     = input.session("1555-1600:23456", "Flatten window", group=grpSess)
+openingSession  = input.session("0930-1000:23456", "Opening range window", group=grpSess)
+
+grpHybrid = "Hybrid Fusion (Adaptive v2 + Support Vector Machine)"
+mlWeight        = input.float(0.55, "ML weight", minval=0.0, maxval=1.0, step=0.05, group=grpHybrid)
+adaptiveWeight  = input.float(0.45, "Adaptive v2 weight", minval=0.0, maxval=1.0, step=0.05, group=grpHybrid)
+fusionThr       = input.float(0.32, "Hybrid entry threshold", minval=0.05, maxval=1.0, step=0.02, group=grpHybrid)
+minMlConfirm    = input.float(0.04, "Minimum ML score confirmation", minval=0.0, maxval=0.5, step=0.01, group=grpHybrid)
+
+grpRisk = "Risk Management"
+tpAtr           = input.float(2.00, "Take profit (ATR)", minval=0.25, step=0.05, group=grpRisk)
+slAtr           = input.float(1.00, "Stop loss (ATR)", minval=0.25, step=0.05, group=grpRisk)
+maxHoldBars     = input.int(6, "Maximum holding bars", minval=1, maxval=24, group=grpRisk)
+
+// ─── Technical Indicators ────────────────────────────────────────────────────
+inEntryWindow = not na(time(timeframe.period, entrySession, tz))
+isFlatTime    = not na(time(timeframe.period, flatSession, tz))
+inOpening     = not na(time(timeframe.period, openingSession, tz))
+
+emaFast = ta.ema(close, 9)
+emaMid  = ta.ema(close, 21)
+emaSlow = ta.ema(close, 50)
+atr14   = ta.atr(14)
+atrSlow = ta.sma(atr14, 156)
+rsi14   = ta.rsi(close, 14)
+[diPlus, diMinus, adx14] = ta.dmi(14, 14)
+
+volRatio = (atrSlow > 0 ? atr14 / atrSlow : 1.0)
+volOk    = volRatio >= 0.45 and volRatio <= 2.50
+
+var float sessHlcSum = 0.0
+var int   sessHlcCnt = 0
+if ta.change(time("D", tz)) != 0
+    sessHlcSum := 0.0
+    sessHlcCnt := 0
+sessHlcSum += (high + low + close) / 3.0
+sessHlcCnt += 1
+sessVwap = sessHlcSum / sessHlcCnt
+
+var float orHigh = na
+var float orLow  = na
+var bool  orReady = false
+if ta.change(time("D", tz)) != 0
+    orHigh  := na
+    orLow   := na
+    orReady := false
+
+if inOpening
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow  := na(orLow)  ? low  : math.min(orLow, low)
+else if not na(orHigh)
+    orReady := true
+
+var float pdHigh = na
+var float pdLow  = na
+if ta.change(time("D", tz)) != 0
+    pdHigh := high[1]
+    pdLow  := low[1]
+
+trendRegime = adx14 >= 20.0 and emaMid != 0 and (math.abs(emaMid - emaSlow) / emaMid > 0.00015)
+
+// Adaptive v2 Score
+float trendScore = 0.0
+trendScore += (emaFast > emaMid ? 0.40 : -0.40)
+trendScore += (emaMid > emaSlow ? 0.70 : -0.70)
+trendScore += (close > close[3] ? 0.30 : -0.30)
+trendScore += (close > close[6] ? 0.25 : -0.25)
+trendScore += (close > close[12] ? 0.65 : -0.65)
+trendScore += (diPlus > diMinus ? 0.35 : -0.35)
+trendScore += (close > sessVwap ? 0.45 : -0.45)
+if orReady
+    trendScore += (close > orHigh ? 0.75 : (close < orLow ? -0.75 : 0.0))
+trendScore += (close > pdHigh ? 0.30 : (close < pdLow ? -0.30 : 0.0))
+
+float rangeScore = 0.0
+float vwapDistAtr = atr14 > 0 ? (close - sessVwap) / atr14 : 0.0
+if vwapDistAtr < -0.90
+    rangeScore += 0.60
+else if vwapDistAtr > 0.90
+    rangeScore -= 0.60
+if rsi14 < 32.0
+    rangeScore += 1.10
+else if rsi14 > 68.0
+    rangeScore -= 1.10
+rangeScore += (close > emaFast ? 0.20 : -0.20)
+rangeScore += (diPlus > diMinus ? 0.15 : -0.15)
+
+float v2Score = trendRegime ? trendScore : rangeScore
+float v2Norm  = math.min(1.0, math.max(-1.0, v2Score / 3.50))
+
+// ─── 36 Features ─────────────────────────────────────────────────────────────
+float logRet1   = close[1] > 0 ? math.log(close / close[1]) : 0.0
+float rollVol6  = nz(ta.stdev(logRet1, 6))
+float rollVol12 = nz(ta.stdev(logRet1, 12))
+float rollVol36 = nz(ta.stdev(logRet1, 36))
+
+var array<float> x = array.new_float(36, 0.0)
+f_update_features() =>
+    array.set(x, 0, (close - close[1]) / math.max(close[1], 1.0))
+    array.set(x, 1, (close - close[3]) / math.max(close[3], 1.0))
+    array.set(x, 2, (close - close[6]) / math.max(close[6], 1.0))
+    array.set(x, 3, (close - close[12]) / math.max(close[12], 1.0))
+    float trRange = math.max(high - low, 1e-6)
+    array.set(x, 4, trRange / close)
+    array.set(x, 5, math.abs(close - open) / trRange)
+    array.set(x, 6, (high - math.max(open, close)) / trRange)
+    array.set(x, 7, (math.min(open, close) - low) / trRange)
+    array.set(x, 8, (emaFast - emaMid) / close)
+    array.set(x, 9, (emaMid - emaSlow) / close)
+    array.set(x, 10, (close - emaFast) / close)
+    array.set(x, 11, (close - emaMid) / close)
+    array.set(x, 12, (close - emaSlow) / close)
+    array.set(x, 13, (rsi14 - 50.0) / 50.0)
+    array.set(x, 14, adx14 / 100.0)
+    array.set(x, 15, diPlus / 100.0)
+    array.set(x, 16, diMinus / 100.0)
+    array.set(x, 17, (diPlus - diMinus) / 100.0)
+    array.set(x, 18, atr14 / close)
+    array.set(x, 19, volRatio)
+    array.set(x, 20, (close - sessVwap) / math.max(atr14, 1.0))
+    array.set(x, 21, orReady ? (close - orHigh) / math.max(atr14, 1.0) : 0.0)
+    array.set(x, 22, orReady ? (close - orLow) / math.max(atr14, 1.0) : 0.0)
+    array.set(x, 23, (close - pdHigh) / math.max(atr14, 1.0))
+    array.set(x, 24, (close - pdLow) / math.max(atr14, 1.0))
+    int tod = hour(time, tz) * 60 + minute(time, tz) - (9 * 60 + 30)
+    array.set(x, 25, math.sin(2.0 * math.pi * tod / 390.0))
+    array.set(x, 26, math.cos(2.0 * math.pi * tod / 390.0))
+    array.set(x, 27, float(dayofweek(time, tz)))
+    array.set(x, 28, rollVol6)
+    array.set(x, 29, rollVol12)
+    array.set(x, 30, rollVol36)
+    array.set(x, 31, trendRegime ? 1.0 : 0.0)
+    array.set(x, 32, (high - sessVwap) / math.max(atr14, 1.0))
+    array.set(x, 33, (low - sessVwap) / math.max(atr14, 1.0))
+    array.set(x, 34, math.abs(high - close[1]) / close)
+    array.set(x, 35, math.abs(low - close[1]) / close)
+
+// ─── Native SVM Hyperplane Evaluators ────────────────────────────────────────
+f_svm_eval_r1(array<float> x) =>
+    -0.000267632 + 0.0137947 * array.get(x, 0) + -0.042209 * array.get(x, 1) + 0.0206173 * array.get(x, 2) + 0.00250542 * array.get(x, 3) + 0.0263888 * array.get(x, 4) + 0.000958676 * array.get(x, 5) + 0.0652274 * array.get(x, 6) + -0.0908763 * array.get(x, 7) + 9.68473e-06 * array.get(x, 8) + -5.68562e-05 * array.get(x, 9) + 3.89e-05 * array.get(x, 10) + 0.0106396 * array.get(x, 11) + 0.00285421 * array.get(x, 12) + -0.0171153 * array.get(x, 13) + -0.0131141 * array.get(x, 14) + 0.00034476 * array.get(x, 15) + -0.00607837 * array.get(x, 16) + 0.00459644 * array.get(x, 17) + -0.0950036 * array.get(x, 18) + 0.0473033 * array.get(x, 19) + 5.29664e-05 * array.get(x, 20) + -6.55225e-05 * array.get(x, 21) + 0.0314822 * array.get(x, 22) + -0.010949 * array.get(x, 23) + 0.0139962 * array.get(x, 24) + -0.000341693 * array.get(x, 25) + 0.0443193 * array.get(x, 26) + -0.0229154 * array.get(x, 27) + -0.00130957 * array.get(x, 28) + 7.8538e-06 * array.get(x, 29) + 3.54995e-05 * array.get(x, 30) + 1.39839e-05 * array.get(x, 31) + 1.32566e-05 * array.get(x, 32) + 3.32679e-06 * array.get(x, 33) + 6.70747e-05 * array.get(x, 34) + 0.000522631 * array.get(x, 35)
+
+f_svm_eval_cu(array<float> x) =>
+    0.303863 + -99.3453 * array.get(x, 0) + -20.0446 * array.get(x, 1) + -7.82794 * array.get(x, 2) + 54.4077 * array.get(x, 3) + -2.56358 * array.get(x, 4) + -8.41053 * array.get(x, 5) + -85.4822 * array.get(x, 6) + 68.0795 * array.get(x, 7) + -0.0160476 * array.get(x, 8) + -0.156258 * array.get(x, 9) + 0.171989 * array.get(x, 10) + -161.745 * array.get(x, 11) + -21.0028 * array.get(x, 12) + 56.2939 * array.get(x, 13) + 33.3945 * array.get(x, 14) + 0.398936 * array.get(x, 15) + -55.4014 * array.get(x, 16) + -96.4386 * array.get(x, 17) + 368.944 * array.get(x, 18) + -58.8756 * array.get(x, 19) + -0.00611346 * array.get(x, 20) + -0.187336 * array.get(x, 21) + -19.3635 * array.get(x, 22) + 15.6142 * array.get(x, 23) + 12.0425 * array.get(x, 24) + -8.84359 * array.get(x, 25) + -31.7959 * array.get(x, 26) + -34.8805 * array.get(x, 27) + -10.6086 * array.get(x, 28) + -0.00169697 * array.get(x, 29) + -0.277807 * array.get(x, 30) + 0.0462502 * array.get(x, 31) + 0.039602 * array.get(x, 32) + -0.315558 * array.get(x, 33) + -0.0968821 * array.get(x, 34) + -13.1661 * array.get(x, 35)
+
+f_svm_eval_p30(array<float> x) =>
+    1.6353e-07 + -0.0550628 * array.get(x, 0) + -0.0542551 * array.get(x, 1) + -0.0725662 * array.get(x, 2) + -0.00112157 * array.get(x, 3) + -0.00505229 * array.get(x, 4) + -0.0202337 * array.get(x, 5) + -0.0812602 * array.get(x, 6) + 0.10072 * array.get(x, 7) + -8.8674e-05 * array.get(x, 8) + 3.57223e-05 * array.get(x, 9) + 0.000101541 * array.get(x, 10) + 0.0568746 * array.get(x, 11) + 0.0380921 * array.get(x, 12) + -0.142162 * array.get(x, 13) + 0.0506295 * array.get(x, 14) + 0.00084071 * array.get(x, 15) + 0.044271 * array.get(x, 16) + 0.0412524 * array.get(x, 17) + 0.096396 * array.get(x, 18) + -0.458618 * array.get(x, 19) + 0.000448087 * array.get(x, 20) + -0.00035373 * array.get(x, 21) + 0.094329 * array.get(x, 22) + 0.141288 * array.get(x, 23) + 0.0118848 * array.get(x, 24) + -0.025776 * array.get(x, 25) + 0.129059 * array.get(x, 26) + -0.124468 * array.get(x, 27) + 0.008711 * array.get(x, 28) + -0.000273069 * array.get(x, 29) + -0.000151302 * array.get(x, 30) + 6.90583e-06 * array.get(x, 31) + 1.15309e-05 * array.get(x, 32) + -0.000363511 * array.get(x, 33) + -5.02277e-05 * array.get(x, 34) + 0.0209635 * array.get(x, 35)
+
+f_svm_eval_tu(array<float> x) =>
+    3.27161 + -154.427 * array.get(x, 0) + 2.67403 * array.get(x, 1) + 127.676 * array.get(x, 2) + 15.6058 * array.get(x, 3) + -15.6487 * array.get(x, 4) + -13.9708 * array.get(x, 5) + 175.31 * array.get(x, 6) + 51.1786 * array.get(x, 7) + 0.321366 * array.get(x, 8) + -0.126378 * array.get(x, 9) + -0.370909 * array.get(x, 10) + -56.72 * array.get(x, 11) + -3.83729 * array.get(x, 12) + -36.9643 * array.get(x, 13) + 61.8827 * array.get(x, 14) + -1.30706 * array.get(x, 15) + 34.5432 * array.get(x, 16) + 87.5067 * array.get(x, 17) + 104.284 * array.get(x, 18) + -41.3642 * array.get(x, 19) + 0.669107 * array.get(x, 20) + -0.00894288 * array.get(x, 21) + 25.0729 * array.get(x, 22) + 33.4126 * array.get(x, 23) + -10.5976 * array.get(x, 24) + 3.03333 * array.get(x, 25) + 57.5325 * array.get(x, 26) + -28.8669 * array.get(x, 27) + 7.53414 * array.get(x, 28) + -0.0900907 * array.get(x, 29) + 0.0412534 * array.get(x, 30) + -0.059694 * array.get(x, 31) + -0.0959407 * array.get(x, 32) + -0.112284 * array.get(x, 33) + -0.0510424 * array.get(x, 34) + 11.6438 * array.get(x, 35)
+
+f_sigmoid(float z) => 1.0 / (1.0 + math.exp(-math.max(-20.0, math.min(20.0, z))))
+
+// ─── Execution ───────────────────────────────────────────────────────────────
+f_update_features()
+
+float ml_r1 = f_svm_eval_r1(x)
+float ml_cu_raw = f_svm_eval_cu(x)
+float ml_p30 = f_svm_eval_p30(x)
+float ml_tu_raw = f_svm_eval_tu(x)
+
+float p_close_up = f_sigmoid(ml_cu_raw)
+float raw_touch  = f_sigmoid(ml_tu_raw)
+float platt_touch = f_sigmoid(0.34444747 * math.log(math.max(0.0001, math.min(0.9999, raw_touch)) / (1.0 - math.max(0.0001, math.min(0.9999, raw_touch)))) + 1.82005406)
+
+float ml_score = 0.50 * (p_close_up - 0.50) * 4.0 + 0.30 * math.min(2.0, math.max(-2.0, ml_r1 * 2500.0)) + 0.20 * math.min(2.0, math.max(-2.0, ml_p30 * 1000.0))
+float hybridScore = mlWeight * ml_score + adaptiveWeight * v2Norm
+
+canEnter = inEntryWindow and volOk
+
+if canEnter and hybridScore >= fusionThr and ml_score >= minMlConfirm
+    strategy.entry("SVM_Long", strategy.long)
+if canEnter and hybridScore <= -fusionThr and ml_score <= -minMlConfirm
+    strategy.entry("SVM_Short", strategy.short)
+
+float tpPoints = tpAtr * atr14
+float slPoints = slAtr * atr14
+
+strategy.exit("Exit_SVM_Long", "SVM_Long", profit=tpPoints/syminfo.mintick, loss=slPoints/syminfo.mintick)
+strategy.exit("Exit_SVM_Short", "SVM_Short", profit=tpPoints/syminfo.mintick, loss=slPoints/syminfo.mintick)
+
+var int barsHeld = 0
+if strategy.position_size != 0
+    barsHeld += 1
+else
+    barsHeld := 0
+
+if barsHeld >= maxHoldBars or isFlatTime
+    strategy.close_all("Hold_Timeout_Or_EOD")
+
+// Visual HUD
+var table hud = table.new(position.top_right, 2, 6, bgcolor=color.new(color.black, 20), border_color=color.gray, border_width=1)
+if barstate.islast
+    table.cell(hud, 0, 0, "Model", text_color=color.white)
+    table.cell(hud, 1, 0, "Support Vector Machine (SVM)", text_color=color.yellow)
+    table.cell(hud, 0, 1, "Hybrid Score", text_color=color.white)
+    table.cell(hud, 1, 1, str.tostring(hybridScore, "#.###"), text_color=hybridScore >= 0.32 ? color.green : (hybridScore <= -0.32 ? color.red : color.gray))
+    table.cell(hud, 0, 2, "ML Score", text_color=color.white)
+    table.cell(hud, 1, 2, str.tostring(ml_score, "#.###"), text_color=color.aqua)
+    table.cell(hud, 0, 3, "P(Close UP)", text_color=color.white)
+    table.cell(hud, 1, 3, str.tostring(p_close_up * 100, "#.#") + "%", text_color=color.white)
+    table.cell(hud, 0, 4, "Regime", text_color=color.white)
+    table.cell(hud, 1, 4, trendRegime ? "TREND" : "RANGE", text_color=trendRegime ? color.green : color.orange)
+    table.cell(hud, 0, 5, "Position", text_color=color.white)
+    table.cell(hud, 1, 5, strategy.position_size > 0 ? "LONG" : (strategy.position_size < 0 ? "SHORT" : "FLAT"), text_color=strategy.position_size > 0 ? color.green : (strategy.position_size < 0 ? color.red : color.silver))

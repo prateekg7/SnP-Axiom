@@ -1,0 +1,338 @@
+{
+  "Pure Adaptive v2": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 14,
+        "longs": 14,
+        "shorts": 0,
+        "net_pnl": 3.02,
+        "gross_pnl": 7.22,
+        "win_rate": 42.9,
+        "profit_factor": 1.13
+      },
+      "2026-11-10": {
+        "trades": 10,
+        "longs": 2,
+        "shorts": 8,
+        "net_pnl": 32.23,
+        "gross_pnl": 35.23,
+        "win_rate": 60.0,
+        "profit_factor": 2.1
+      },
+      "2026-11-11": {
+        "trades": 11,
+        "longs": 11,
+        "shorts": 0,
+        "net_pnl": 0.51,
+        "gross_pnl": 3.81,
+        "win_rate": 45.5,
+        "profit_factor": 1.09
+      },
+      "2026-11-12": {
+        "trades": 9,
+        "longs": 4,
+        "shorts": 5,
+        "net_pnl": -4.62,
+        "gross_pnl": -1.92,
+        "win_rate": 44.4,
+        "profit_factor": 0.94
+      },
+      "2026-11-13": {
+        "trades": 7,
+        "longs": 0,
+        "shorts": 7,
+        "net_pnl": 41.32,
+        "gross_pnl": 43.42,
+        "win_rate": 57.1,
+        "profit_factor": 2.5
+      }
+    },
+    "total_trades": 51,
+    "net_pnl": 72.46,
+    "gross_pnl": 87.76,
+    "win_rate": 49.0,
+    "profit_factor": 1.36,
+    "max_drawdown": 35.77,
+    "yield_per_trade": 1.42
+  },
+  "Random Forest": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 14,
+        "longs": 14,
+        "shorts": 0,
+        "net_pnl": 32.53,
+        "gross_pnl": 36.73,
+        "win_rate": 50.0,
+        "profit_factor": 2.16
+      },
+      "2026-11-10": {
+        "trades": 3,
+        "longs": 1,
+        "shorts": 2,
+        "net_pnl": -21.41,
+        "gross_pnl": -20.51,
+        "win_rate": 33.3,
+        "profit_factor": 0.14
+      },
+      "2026-11-11": {
+        "trades": 11,
+        "longs": 11,
+        "shorts": 0,
+        "net_pnl": 23.7,
+        "gross_pnl": 27.0,
+        "win_rate": 63.6,
+        "profit_factor": 2.02
+      },
+      "2026-11-12": {
+        "trades": 3,
+        "longs": 3,
+        "shorts": 0,
+        "net_pnl": 2.25,
+        "gross_pnl": 3.15,
+        "win_rate": 33.3,
+        "profit_factor": 1.17
+      },
+      "2026-11-13": {
+        "trades": 5,
+        "longs": 0,
+        "shorts": 5,
+        "net_pnl": 33.59,
+        "gross_pnl": 35.09,
+        "win_rate": 60.0,
+        "profit_factor": 2.9
+      }
+    },
+    "total_trades": 36,
+    "net_pnl": 70.66,
+    "gross_pnl": 81.46,
+    "win_rate": 52.8,
+    "profit_factor": 1.57,
+    "max_drawdown": 49.61,
+    "yield_per_trade": 1.96
+  },
+  "Option A (LightGBM)": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 10,
+        "longs": 10,
+        "shorts": 0,
+        "net_pnl": 11.36,
+        "gross_pnl": 14.36,
+        "win_rate": 50.0,
+        "profit_factor": 1.36
+      },
+      "2026-11-10": {
+        "trades": 6,
+        "longs": 1,
+        "shorts": 5,
+        "net_pnl": -16.78,
+        "gross_pnl": -14.98,
+        "win_rate": 16.7,
+        "profit_factor": 0.18
+      },
+      "2026-11-11": {
+        "trades": 11,
+        "longs": 11,
+        "shorts": 0,
+        "net_pnl": -5.65,
+        "gross_pnl": -2.35,
+        "win_rate": 54.5,
+        "profit_factor": 0.91
+      },
+      "2026-11-12": {
+        "trades": 5,
+        "longs": 4,
+        "shorts": 1,
+        "net_pnl": -2.85,
+        "gross_pnl": -1.35,
+        "win_rate": 40.0,
+        "profit_factor": 0.95
+      },
+      "2026-11-13": {
+        "trades": 7,
+        "longs": 0,
+        "shorts": 7,
+        "net_pnl": -0.56,
+        "gross_pnl": 1.54,
+        "win_rate": 42.9,
+        "profit_factor": 1.04
+      }
+    },
+    "total_trades": 39,
+    "net_pnl": -14.48,
+    "gross_pnl": -2.78,
+    "win_rate": 43.6,
+    "profit_factor": 0.91,
+    "max_drawdown": 48.65,
+    "yield_per_trade": -0.37
+  },
+  "HistGradientBoosting": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 15,
+        "longs": 15,
+        "shorts": 0,
+        "net_pnl": 4.07,
+        "gross_pnl": 8.57,
+        "win_rate": 40.0,
+        "profit_factor": 1.16
+      },
+      "2026-11-10": {
+        "trades": 0,
+        "longs": 0,
+        "shorts": 0,
+        "net_pnl": 0.0,
+        "gross_pnl": 0.0,
+        "win_rate": 0.0,
+        "profit_factor": 0.0
+      },
+      "2026-11-11": {
+        "trades": 11,
+        "longs": 11,
+        "shorts": 0,
+        "net_pnl": 37.65,
+        "gross_pnl": 40.95,
+        "win_rate": 54.5,
+        "profit_factor": 6.22
+      },
+      "2026-11-12": {
+        "trades": 3,
+        "longs": 3,
+        "shorts": 0,
+        "net_pnl": 9.44,
+        "gross_pnl": 10.34,
+        "win_rate": 33.3,
+        "profit_factor": 1.91
+      },
+      "2026-11-13": {
+        "trades": 4,
+        "longs": 0,
+        "shorts": 4,
+        "net_pnl": 15.17,
+        "gross_pnl": 16.37,
+        "win_rate": 50.0,
+        "profit_factor": 2.16
+      }
+    },
+    "total_trades": 33,
+    "net_pnl": 66.33,
+    "gross_pnl": 76.23,
+    "win_rate": 45.5,
+    "profit_factor": 1.72,
+    "max_drawdown": 30.43,
+    "yield_per_trade": 2.01
+  },
+  "MLP Neural Net": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 14,
+        "longs": 14,
+        "shorts": 0,
+        "net_pnl": 46.14,
+        "gross_pnl": 50.34,
+        "win_rate": 57.1,
+        "profit_factor": 2.11
+      },
+      "2026-11-10": {
+        "trades": 11,
+        "longs": 10,
+        "shorts": 1,
+        "net_pnl": 44.7,
+        "gross_pnl": 48.0,
+        "win_rate": 54.5,
+        "profit_factor": 2.03
+      },
+      "2026-11-11": {
+        "trades": 15,
+        "longs": 15,
+        "shorts": 0,
+        "net_pnl": 23.55,
+        "gross_pnl": 28.05,
+        "win_rate": 46.7,
+        "profit_factor": 1.89
+      },
+      "2026-11-12": {
+        "trades": 9,
+        "longs": 9,
+        "shorts": 0,
+        "net_pnl": 9.45,
+        "gross_pnl": 12.15,
+        "win_rate": 55.6,
+        "profit_factor": 1.31
+      },
+      "2026-11-13": {
+        "trades": 13,
+        "longs": 13,
+        "shorts": 0,
+        "net_pnl": -7.6,
+        "gross_pnl": -3.7,
+        "win_rate": 38.5,
+        "profit_factor": 0.92
+      }
+    },
+    "total_trades": 62,
+    "net_pnl": 116.24,
+    "gross_pnl": 134.84,
+    "win_rate": 50.0,
+    "profit_factor": 1.53,
+    "max_drawdown": 45.54,
+    "yield_per_trade": 1.87
+  },
+  "Support Vector Machine": {
+    "daily": {
+      "2026-11-09": {
+        "trades": 5,
+        "longs": 4,
+        "shorts": 1,
+        "net_pnl": -6.24,
+        "gross_pnl": -4.74,
+        "win_rate": 40.0,
+        "profit_factor": 0.77
+      },
+      "2026-11-10": {
+        "trades": 7,
+        "longs": 3,
+        "shorts": 4,
+        "net_pnl": -20.69,
+        "gross_pnl": -18.59,
+        "win_rate": 28.6,
+        "profit_factor": 0.37
+      },
+      "2026-11-11": {
+        "trades": 3,
+        "longs": 3,
+        "shorts": 0,
+        "net_pnl": -5.0,
+        "gross_pnl": -4.1,
+        "win_rate": 33.3,
+        "profit_factor": 0.42
+      },
+      "2026-11-12": {
+        "trades": 9,
+        "longs": 3,
+        "shorts": 6,
+        "net_pnl": -14.0,
+        "gross_pnl": -11.3,
+        "win_rate": 33.3,
+        "profit_factor": 0.72
+      },
+      "2026-11-13": {
+        "trades": 4,
+        "longs": 1,
+        "shorts": 3,
+        "net_pnl": 26.02,
+        "gross_pnl": 27.22,
+        "win_rate": 100.0,
+        "profit_factor": 99.9
+      }
+    },
+    "total_trades": 28,
+    "net_pnl": -19.91,
+    "gross_pnl": -11.51,
+    "win_rate": 42.9,
+    "profit_factor": 0.81,
+    "max_drawdown": 47.38,
+    "yield_per_trade": -0.71
+  }
+}
