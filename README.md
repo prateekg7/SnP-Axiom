@@ -6,6 +6,52 @@ All trading records, positions, and performance figures are simulated paper-trad
 
 ---
 
+## Project Mindmap
+
+```mermaid
+mindmap
+  root((SnP-Axiom<br/>SPX Quant Platform))
+    Predictive Pipeline
+      Market Ingestion
+        ["5m SPX Regular Session Feed"]
+        ["Intraday Anchors: VWAP, PDH, OR"]
+      Feature Engineering
+        ["Momentum: EMA Ribbon, ADX, RSI"]
+        ["Volatility: ATR, Realized Vol"]
+        ["Candle Morphology: Body, Wicks"]
+    Machine Learning
+      Multi-Head Random Forest
+        ["110 Total Trees, max depth 6"]
+        ["Dual-Horizon Return and Path"]
+        ["Directional and Touch Heads"]
+      Benchmark Comparisons
+        ["HistGradientBoosting and LightGBM"]
+        ["Multi-Layer Perceptron (MLP)"]
+        ["Support Vector Machine (SVM)"]
+    Adaptive Strategy and Risk
+      Adaptive v2 Spine
+        ["Trend vs Range Regime Filter"]
+        ["EMA Ribbon and VWAP Alignment"]
+        ["Dynamic 60/40 and 50/50 Blending"]
+      Quant Risk Analytics
+        ["Platt Scaling and 90% Bounds"]
+        ["2,000-Path Monte Carlo Cone"]
+        ["Black-Scholes Barrier Structure"]
+    Execution and Interface
+      Paper Simulator
+        ["Next-Open Market Execution"]
+        ["0.15 pt/side Fee Modeling"]
+        ["Dynamic ATR Targets and Stops"]
+        ["6-Bar / 30m Time-Stop Limit"]
+      Web Dashboard and Pine
+        ["Lightweight Candlestick Charts"]
+        ["Sequential 6-Step 30m Projections"]
+        ["Support and Resistance Corridors"]
+        ["Standalone Pine Script v6 Strategy"]
+```
+
+---
+
 ## Architecture and Pipeline
 
 ```mermaid
