@@ -62,6 +62,8 @@ The live paper-trading web interface running on FastAPI (port 8001) and React (p
 
 ## Architecture and Pipeline
 
+![SnP-Axiom End-to-End System Architecture](reports/figures/fig3_1_system_architecture.png)
+
 ```mermaid
 flowchart TD
     %% 1. Ingestion
@@ -354,10 +356,12 @@ All evaluation runs, training code, and visual figures are stored in the reposit
   * [final_evaluation_stats.json](artifacts/models/evaluation_stats/final_evaluation_stats.json): Long-term baseline calibration statistics across 14,521 out-of-sample bars.
   * [spx_adaptive_v2_ml_verification.json](artifacts/models/evaluation_stats/spx_adaptive_v2_ml_verification.json): Feature ablation and causal verification figures.
 * **Benchmark Scripts**:
+  * [generate_system_architecture_diagram.py](scripts/generate_system_architecture_diagram.py): High-resolution modular architecture figure generator.
   * [train_and_compare_all_ml_methods.py](scripts/comparison/train_and_compare_all_ml_methods.py): Full model training and backtesting pipeline.
   * [export_pine_ml_strategies.py](scripts/comparison/export_pine_ml_strategies.py): Script generating standalone Pine Script files for each model.
   * [generate_all_models_backtest_graphics.py](scripts/comparison/generate_all_models_backtest_graphics.py): Figure generation script for comparative visual analysis.
 * **Charts and Visualizations**:
+  * [fig3_1_system_architecture.png](reports/figures/fig3_1_system_architecture.png): High-resolution modular system architecture diagram across all 10 pipeline stages.
   * [live_dashboard_full_v2.png](reports/figures/live_dashboard_full_v2.png): Full-page screenshot of the live dashboard running on localhost.
   * [live_session_performance_settlement.png](reports/figures/live_session_performance_settlement.png): Focused settlement and equity profile card for the live trading session.
   * [fig_backtest_models_comparison_dashboard.png](reports/figures/fig_backtest_models_comparison_dashboard.png): Comparative metric overview across all models.
