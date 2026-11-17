@@ -1,0 +1,416 @@
+{
+  "generated_at": "2026-11-17T06:29:09Z",
+  "wfv_setup": {
+    "validation_type": "5-Fold Expanding Window with Purging & Embargo",
+    "prediction_horizon_bars": 6,
+    "embargo_bars": 2,
+    "total_oos_bars": 25435,
+    "friction_per_side_pts": 0.15,
+    "take_profit_atr_mult": 2.0,
+    "stop_loss_atr_mult": 1.0,
+    "max_hold_bars": 6,
+    "folds": [
+      {
+        "fold_id": 1,
+        "train_bars": 40156,
+        "val_bars": 7078,
+        "test_bars": 5079,
+        "train_period": "2023-02-14 to 2025-03-12",
+        "test_period": "2025-07-23 to 2025-10-24",
+        "purged_buffer_bars": 8
+      },
+      {
+        "fold_id": 2,
+        "train_bars": 44480,
+        "val_bars": 7841,
+        "test_bars": 5079,
+        "train_period": "2023-02-14 to 2025-05-30",
+        "test_period": "2025-10-24 to 2026-01-30",
+        "purged_buffer_bars": 8
+      },
+      {
+        "fold_id": 3,
+        "train_bars": 48804,
+        "val_bars": 8604,
+        "test_bars": 5079,
+        "train_period": "2023-02-14 to 2025-08-20",
+        "test_period": "2026-01-30 to 2026-05-05",
+        "purged_buffer_bars": 8
+      },
+      {
+        "fold_id": 4,
+        "train_bars": 53128,
+        "val_bars": 9367,
+        "test_bars": 5079,
+        "train_period": "2023-02-14 to 2025-11-07",
+        "test_period": "2026-05-05 to 2026-08-07",
+        "purged_buffer_bars": 8
+      },
+      {
+        "fold_id": 5,
+        "train_bars": 57452,
+        "val_bars": 10130,
+        "test_bars": 5079,
+        "train_period": "2023-02-14 to 2026-01-30",
+        "test_period": "2026-08-07 to 2026-11-09",
+        "purged_buffer_bars": 8
+      }
+    ]
+  },
+  "summary": [
+    {
+      "model": "Pure Adaptive v2 (No ML)",
+      "cumulative_net_pnl": 45.28,
+      "cumulative_gross_pnl": 1096.18,
+      "total_trades": 3503,
+      "overall_win_rate_pct": 41.59,
+      "mean_fold_win_rate_pct": 41.61,
+      "win_rate_std_dev": 0.99,
+      "expectancy_pts_per_trade": 0.01,
+      "worst_fold_drawdown_pts": 599.59,
+      "mean_profit_factor": 1.01,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": 8.14,
+          "win_rate": 41.75,
+          "trades": 661,
+          "profit_factor": 1.005,
+          "drawdown": 161.31
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": -45.12,
+          "win_rate": 40.54,
+          "trades": 698,
+          "profit_factor": 0.982,
+          "drawdown": 185.5
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": 24.39,
+          "win_rate": 43.15,
+          "trades": 686,
+          "profit_factor": 1.009,
+          "drawdown": 255.74
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -303.17,
+          "win_rate": 40.54,
+          "trades": 735,
+          "profit_factor": 0.898,
+          "drawdown": 599.59
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 361.04,
+          "win_rate": 42.05,
+          "trades": 723,
+          "profit_factor": 1.163,
+          "drawdown": 164.77
+        }
+      ]
+    },
+    {
+      "model": "Support Vector Machine",
+      "cumulative_net_pnl": -421.63,
+      "cumulative_gross_pnl": 212.87,
+      "total_trades": 2115,
+      "overall_win_rate_pct": 42.65,
+      "mean_fold_win_rate_pct": 42.9,
+      "win_rate_std_dev": 1.88,
+      "expectancy_pts_per_trade": -0.2,
+      "worst_fold_drawdown_pts": 312.34,
+      "mean_profit_factor": 0.89,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": -199.88,
+          "win_rate": 44.09,
+          "trades": 440,
+          "profit_factor": 0.812,
+          "drawdown": 262.75
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": -36.67,
+          "win_rate": 41.88,
+          "trades": 573,
+          "profit_factor": 0.98,
+          "drawdown": 176.8
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": -117.62,
+          "win_rate": 43.92,
+          "trades": 148,
+          "profit_factor": 0.68,
+          "drawdown": 137.28
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -197.3,
+          "win_rate": 44.92,
+          "trades": 463,
+          "profit_factor": 0.883,
+          "drawdown": 312.34
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 129.84,
+          "win_rate": 39.71,
+          "trades": 491,
+          "profit_factor": 1.087,
+          "drawdown": 164.95
+        }
+      ]
+    },
+    {
+      "model": "Random Forest Hybrid",
+      "cumulative_net_pnl": -425.95,
+      "cumulative_gross_pnl": 57.65,
+      "total_trades": 1612,
+      "overall_win_rate_pct": 47.08,
+      "mean_fold_win_rate_pct": 47.41,
+      "win_rate_std_dev": 3.9,
+      "expectancy_pts_per_trade": -0.26,
+      "worst_fold_drawdown_pts": 255.37,
+      "mean_profit_factor": 0.93,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": -184.31,
+          "win_rate": 42.17,
+          "trades": 351,
+          "profit_factor": 0.785,
+          "drawdown": 210.84
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": -62.18,
+          "win_rate": 46.15,
+          "trades": 325,
+          "profit_factor": 0.933,
+          "drawdown": 148.96
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": -173.79,
+          "win_rate": 45.76,
+          "trades": 330,
+          "profit_factor": 0.848,
+          "drawdown": 231.7
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -192.34,
+          "win_rate": 49.13,
+          "trades": 346,
+          "profit_factor": 0.818,
+          "drawdown": 255.37
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 186.67,
+          "win_rate": 53.85,
+          "trades": 260,
+          "profit_factor": 1.27,
+          "drawdown": 117.66
+        }
+      ]
+    },
+    {
+      "model": "Option A (LightGBM)",
+      "cumulative_net_pnl": -426.31,
+      "cumulative_gross_pnl": 114.59,
+      "total_trades": 1803,
+      "overall_win_rate_pct": 47.42,
+      "mean_fold_win_rate_pct": 47.52,
+      "win_rate_std_dev": 2.65,
+      "expectancy_pts_per_trade": -0.24,
+      "worst_fold_drawdown_pts": 355.28,
+      "mean_profit_factor": 0.93,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": -88.26,
+          "win_rate": 43.77,
+          "trades": 377,
+          "profit_factor": 0.9,
+          "drawdown": 145.93
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": 37.41,
+          "win_rate": 46.63,
+          "trades": 356,
+          "profit_factor": 1.037,
+          "drawdown": 140.91
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": -212.12,
+          "win_rate": 46.24,
+          "trades": 372,
+          "profit_factor": 0.841,
+          "drawdown": 355.28
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -247.14,
+          "win_rate": 49.73,
+          "trades": 374,
+          "profit_factor": 0.793,
+          "drawdown": 340.9
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 83.8,
+          "win_rate": 51.23,
+          "trades": 324,
+          "profit_factor": 1.102,
+          "drawdown": 72.23
+        }
+      ]
+    },
+    {
+      "model": "Multi-Layer Perceptron",
+      "cumulative_net_pnl": -441.62,
+      "cumulative_gross_pnl": 843.88,
+      "total_trades": 4285,
+      "overall_win_rate_pct": 45.23,
+      "mean_fold_win_rate_pct": 45.25,
+      "win_rate_std_dev": 1.36,
+      "expectancy_pts_per_trade": -0.1,
+      "worst_fold_drawdown_pts": 351.8,
+      "mean_profit_factor": 0.95,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": -225.32,
+          "win_rate": 46.56,
+          "trades": 786,
+          "profit_factor": 0.852,
+          "drawdown": 276.88
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": -242.92,
+          "win_rate": 42.76,
+          "trades": 905,
+          "profit_factor": 0.905,
+          "drawdown": 295.19
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": 130.42,
+          "win_rate": 46.28,
+          "trades": 888,
+          "profit_factor": 1.047,
+          "drawdown": 204.71
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -242.89,
+          "win_rate": 44.99,
+          "trades": 729,
+          "profit_factor": 0.898,
+          "drawdown": 351.8
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 139.09,
+          "win_rate": 45.65,
+          "trades": 977,
+          "profit_factor": 1.056,
+          "drawdown": 223.29
+        }
+      ]
+    },
+    {
+      "model": "HistGradientBoosting",
+      "cumulative_net_pnl": -500.56,
+      "cumulative_gross_pnl": -10.06,
+      "total_trades": 1635,
+      "overall_win_rate_pct": 46.67,
+      "mean_fold_win_rate_pct": 47.02,
+      "win_rate_std_dev": 4.18,
+      "expectancy_pts_per_trade": -0.31,
+      "worst_fold_drawdown_pts": 340.39,
+      "mean_profit_factor": 0.92,
+      "folds": [
+        {
+          "fold": 1,
+          "test_period": "2025-07-23 to 2025-10-24",
+          "net_pnl": -139.88,
+          "win_rate": 42.74,
+          "trades": 351,
+          "profit_factor": 0.828,
+          "drawdown": 196.76
+        },
+        {
+          "fold": 2,
+          "test_period": "2025-10-24 to 2026-01-30",
+          "net_pnl": -91.32,
+          "win_rate": 49.83,
+          "trades": 303,
+          "profit_factor": 0.898,
+          "drawdown": 114.77
+        },
+        {
+          "fold": 3,
+          "test_period": "2026-01-30 to 2026-05-05",
+          "net_pnl": -259.02,
+          "win_rate": 42.94,
+          "trades": 340,
+          "profit_factor": 0.778,
+          "drawdown": 340.39
+        },
+        {
+          "fold": 4,
+          "test_period": "2026-05-05 to 2026-08-07",
+          "net_pnl": -207.6,
+          "win_rate": 46.01,
+          "trades": 363,
+          "profit_factor": 0.815,
+          "drawdown": 290.42
+        },
+        {
+          "fold": 5,
+          "test_period": "2026-08-07 to 2026-11-09",
+          "net_pnl": 197.26,
+          "win_rate": 53.6,
+          "trades": 278,
+          "profit_factor": 1.291,
+          "drawdown": 59.1
+        }
+      ]
+    }
+  ]
+}
